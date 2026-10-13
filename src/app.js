@@ -9,6 +9,7 @@ const Generation = require('./models/Generation');
 
 const app = express();
 app.set('trust proxy', 1);
+const memoryLogs = global._generationMemoryLogs || (global._generationMemoryLogs = []);
 
 // Figma plugin iframes send Origin: null, so we can't whitelist by origin.
 // Protection = x-plugin-key header + rate limits.
@@ -25,6 +26,9 @@ function auth(req, res, next) {
 
 // Safe DB log: never breaks a response and never waits more than 1.5s (e.g. when Atlas IP access is not allowed yet)
 async function log(doc) {
+  const entry = { ...doc, createdAt: new Date(), _id: 'mem-' + Date.now() + '-' + Math.random().toString(16).slice(2) };
+  memoryLogs.unshift(entry);
+  memoryLogs.splice(50);
   const work = (async () => { if (await connect()) await Generation.create(doc); })().catch((e) => console.error('DB log failed:', e.message));
   await Promise.race([work, new Promise((r) => setTimeout(r, 1500))]);
 }
@@ -45,14 +49,24 @@ async function status() {
   return { ok: true, geminiKey: !!cfg.GEMINI_API_KEY && !cfg.GEMINI_API_KEY.startsWith('PASTE_'), models: modelList(), db };
 }
 
-async function recentLogs(limit = 25) {
+async function recentLogs(limit = 25, includeOutput = true) {
+  const fallback = () => memoryLogs.slice(0, Math.min(limit, 100)).map((x) => (includeOutput ? x : { ...x, output: undefined }));
   return Promise.race([
     (async () => {
-      if (!(await connect())) return [];
-      return Generation.find({}, '-output').sort({ createdAt: -1 }).limit(Math.min(limit, 100)).lean();
+      if (!(await connect())) return fallback();
+      const query = Generation.find({}, includeOutput ? undefined : '-output');
+      const items = await query.sort({ createdAt: -1 }).limit(Math.min(limit, 100)).lean();
+      return items.length ? items : fallback();
     })(),
-    timeout(2500, [])
+    timeout(2500, fallback())
   ]);
+}
+
+function codePreview(x) {
+  if (!x.output) return '<span class="muted">No code saved for this event.</span>';
+  const code = String(x.output);
+  const preview = code.length > 12000 ? code.slice(0, 12000) + '\n\n... output trimmed in dashboard ...' : code;
+  return `<details><summary>View generated code (${esc(code.length)} chars)</summary><pre>${esc(preview)}</pre></details>`;
 }
 
 app.get('/', async (req, res) => {
@@ -63,7 +77,7 @@ app.get('/', async (req, res) => {
 
   try {
     info = await status();
-    if (hasKey && info.db === 'connected') items = await recentLogs(parseInt(req.query.limit, 10) || 25);
+    if (hasKey) items = await recentLogs(parseInt(req.query.limit, 10) || 25);
   } catch (e) {
     error = e.message;
   }
@@ -78,9 +92,10 @@ app.get('/', async (req, res) => {
             <td>${esc(x.ms || 0)} ms</td>
             <td>${esc(x.inputChars || 0)} -> ${esc(x.outputChars || 0)}</td>
             <td>${esc(x.error || x.instructions || '-')}</td>
+            <td>${codePreview(x)}</td>
           </tr>`).join('')
-        : '<tr><td colspan="7">No logs yet.</td></tr>')
-    : '<tr><td colspan="7">Add <code>?key=YOUR_PLUGIN_KEY</code> to this URL to view backend logs.</td></tr>';
+        : '<tr><td colspan="8">No logs yet.</td></tr>')
+    : '<tr><td colspan="8">Add <code>?key=YOUR_PLUGIN_KEY</code> to this URL to view backend logs and generated code.</td></tr>';
 
   res.type('html').send(`<!doctype html>
 <html lang="en">
@@ -104,6 +119,9 @@ app.get('/', async (req, res) => {
     th { color:var(--muted); font-size:12px; font-weight:600; }
     td { font-size:13px; }
     code,.tag { background:#1b2027; border:1px solid var(--line); border-radius:999px; padding:2px 7px; }
+    details { min-width:260px; }
+    summary { cursor:pointer; color:var(--brand); font-weight:700; }
+    pre { max-width:520px; max-height:360px; overflow:auto; margin:8px 0 0; padding:12px; border:1px solid var(--line); border-radius:8px; background:#050607; color:#d8dee6; font:12px/1.5 Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
     .tag.good { border-color:rgba(37,194,110,.35); } .tag.bad { border-color:rgba(255,92,92,.35); }
     .error { margin:16px 0; color:var(--bad); white-space:pre-wrap; }
     @media (max-width:760px) { .grid { grid-template-columns:1fr 1fr; } table { display:block; overflow:auto; } }
@@ -122,7 +140,7 @@ app.get('/', async (req, res) => {
     </section>
     <h2>Recent Logs</h2>
     <table>
-      <thead><tr><th>Time</th><th>Kind</th><th>Format</th><th>Model</th><th>Duration</th><th>Chars</th><th>Note / Error</th></tr></thead>
+      <thead><tr><th>Time</th><th>Kind</th><th>Format</th><th>Model</th><th>Duration</th><th>Chars</th><th>Note / Error</th><th>Code</th></tr></thead>
       <tbody>${logsHtml}</tbody>
     </table>
   </main>
@@ -140,7 +158,7 @@ app.post('/api/fix', auth, async (req, res) => {
   if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'html is required' });
   const t = Date.now();
   const out = fixHtml(html);
-  await log({ kind: 'fix', inputChars: html.length, outputChars: out.html.length, changes: out.stats.total, ms: Date.now() - t });
+  await log({ kind: 'fix', inputChars: html.length, outputChars: out.html.length, changes: out.stats.total, ms: Date.now() - t, output: out.html });
   res.json({ html: out.html, stats: out.stats });
 });
 
@@ -173,7 +191,7 @@ app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'
 app.get('/api/history', auth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
-    const items = await recentLogs(limit);
+    const items = await recentLogs(limit, req.query.output === '1');
     res.json({ items });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -183,7 +201,7 @@ app.get('/api/history', auth, async (req, res) => {
 app.get('/api/logs', auth, async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 25, 100);
-    res.json({ items: await recentLogs(limit) });
+    res.json({ items: await recentLogs(limit, true) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
