@@ -18,7 +18,8 @@ const limiter = (limit, msg) => rateLimit({ windowMs: 60 * 1000, limit, standard
 app.use(limiter(60, 'Too many requests. Wait a minute and try again.'));
 
 function auth(req, res, next) {
-  if (cfg.PLUGIN_KEY && req.get('x-plugin-key') !== cfg.PLUGIN_KEY) return res.status(401).json({ error: 'Invalid plugin key' });
+  const key = req.get('x-plugin-key') || req.query.key;
+  if (cfg.PLUGIN_KEY && key !== cfg.PLUGIN_KEY) return res.status(401).json({ error: 'Invalid plugin key' });
   next();
 }
 
@@ -28,12 +29,109 @@ async function log(doc) {
   await Promise.race([work, new Promise((r) => setTimeout(r, 1500))]);
 }
 
-app.get('/', (_req, res) => res.type('text').send('Design to Tailwind API is running'));
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const timeout = (ms, value) => new Promise((resolve) => setTimeout(() => resolve(value), ms));
+
+async function status() {
+  let db = 'off';
+  if (dbEnabled()) {
+    try {
+      db = await Promise.race([
+        (async () => ((await connect()) ? 'connected' : 'off'))(),
+        timeout(1800, 'timeout')
+      ]);
+    } catch (e) { db = 'error: ' + e.message; }
+  }
+  return { ok: true, geminiKey: !!cfg.GEMINI_API_KEY && !cfg.GEMINI_API_KEY.startsWith('PASTE_'), models: modelList(), db };
+}
+
+async function recentLogs(limit = 25) {
+  return Promise.race([
+    (async () => {
+      if (!(await connect())) return [];
+      return Generation.find({}, '-output').sort({ createdAt: -1 }).limit(Math.min(limit, 100)).lean();
+    })(),
+    timeout(2500, [])
+  ]);
+}
+
+app.get('/', async (req, res) => {
+  const hasKey = !cfg.PLUGIN_KEY || req.query.key === cfg.PLUGIN_KEY;
+  let info = { ok: true, geminiKey: false, models: [], db: 'checking' };
+  let items = [];
+  let error = '';
+
+  try {
+    info = await status();
+    if (hasKey && info.db === 'connected') items = await recentLogs(parseInt(req.query.limit, 10) || 25);
+  } catch (e) {
+    error = e.message;
+  }
+
+  const logsHtml = hasKey
+    ? (items.length
+        ? items.map((x) => `<tr>
+            <td>${esc(new Date(x.createdAt).toLocaleString('en-US', { timeZone: 'Asia/Colombo' }))}</td>
+            <td><span class="tag ${x.ok === false ? 'bad' : 'good'}">${esc(x.kind)}</span></td>
+            <td>${esc(x.format || '-')}</td>
+            <td>${esc(x.model || '-')}</td>
+            <td>${esc(x.ms || 0)} ms</td>
+            <td>${esc(x.inputChars || 0)} -> ${esc(x.outputChars || 0)}</td>
+            <td>${esc(x.error || x.instructions || '-')}</td>
+          </tr>`).join('')
+        : '<tr><td colspan="7">No logs yet.</td></tr>')
+    : '<tr><td colspan="7">Add <code>?key=YOUR_PLUGIN_KEY</code> to this URL to view backend logs.</td></tr>';
+
+  res.type('html').send(`<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Design to Tailwind Backend</title>
+  <style>
+    :root { color-scheme: dark; --bg:#08090b; --panel:#111418; --line:#29313a; --text:#f6f7f8; --muted:#9aa4af; --good:#25c26e; --bad:#ff5c5c; --brand:#ffd15a; }
+    body { margin:0; font:14px/1.5 Inter,system-ui,Segoe UI,sans-serif; background:var(--bg); color:var(--text); }
+    main { max-width:1120px; margin:0 auto; padding:32px 18px; }
+    h1 { margin:0 0 4px; font-size:26px; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:22px 0; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
+    .label { color:var(--muted); font-size:12px; }
+    .value { font-size:17px; font-weight:700; margin-top:4px; overflow-wrap:anywhere; }
+    .good { color:var(--good); } .bad { color:var(--bad); }
+    table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    th,td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:var(--muted); font-size:12px; font-weight:600; }
+    td { font-size:13px; }
+    code,.tag { background:#1b2027; border:1px solid var(--line); border-radius:999px; padding:2px 7px; }
+    .tag.good { border-color:rgba(37,194,110,.35); } .tag.bad { border-color:rgba(255,92,92,.35); }
+    .error { margin:16px 0; color:var(--bad); white-space:pre-wrap; }
+    @media (max-width:760px) { .grid { grid-template-columns:1fr 1fr; } table { display:block; overflow:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Design to Tailwind Backend</h1>
+    <div class="muted">Root dashboard for Vercel backend status and recent generation logs.</div>
+    ${error ? `<div class="error">${esc(error)}</div>` : ''}
+    <section class="grid">
+      <div class="card"><div class="label">API</div><div class="value good">online</div></div>
+      <div class="card"><div class="label">Gemini key</div><div class="value ${info.geminiKey ? 'good' : 'bad'}">${info.geminiKey ? 'set' : 'missing'}</div></div>
+      <div class="card"><div class="label">MongoDB</div><div class="value ${info.db === 'connected' ? 'good' : 'bad'}">${esc(info.db)}</div></div>
+      <div class="card"><div class="label">Models</div><div class="value">${esc(info.models.join(', ') || '-')}</div></div>
+    </section>
+    <h2>Recent Logs</h2>
+    <table>
+      <thead><tr><th>Time</th><th>Kind</th><th>Format</th><th>Model</th><th>Duration</th><th>Chars</th><th>Note / Error</th></tr></thead>
+      <tbody>${logsHtml}</tbody>
+    </table>
+  </main>
+</body>
+</html>`);
+});
 
 app.get('/api/health', auth, async (_req, res) => {
-  let db = 'off';
-  if (dbEnabled()) { try { db = (await connect()) ? 'connected' : 'off'; } catch (e) { db = 'error: ' + e.message; } }
-  res.json({ ok: true, geminiKey: !!cfg.GEMINI_API_KEY && !cfg.GEMINI_API_KEY.startsWith('PASTE_'), models: modelList(), db });
+  res.json(await status());
 });
 
 // ---- default path: rule-based fix (no AI) ----
@@ -74,10 +172,18 @@ app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'
 
 app.get('/api/history', auth, async (req, res) => {
   try {
-    if (!(await connect())) return res.json({ items: [], note: 'MongoDB disabled' });
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
-    const items = await Generation.find({}, '-output').sort({ createdAt: -1 }).limit(limit).lean();
+    const items = await recentLogs(limit);
     res.json({ items });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/logs', auth, async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 25, 100);
+    res.json({ items: await recentLogs(limit) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

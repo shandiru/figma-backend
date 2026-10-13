@@ -1,0 +1,809 @@
+0 verbose cli C:\nvm4w\nodejs\node.exe C:\nvm4w\nodejs\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.3
+2 info using node@v22.19.0
+3 silly config load:file:C:\Users\USER\AppData\Local\nvm\v22.19.0\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\USER\Downloads\design-to-tailwind-ai\design-to-tailwind-ai\backend\.npmrc
+5 silly config load:file:C:\Users\USER\.npmrc
+6 silly config load:file:C:\nvm4w\nodejs\etc\npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" ".npm-cache" "--loglevel" "warn"
+9 verbose logfile logs-max:10 dir:C:\Users\USER\Downloads\design-to-tailwind-ai\design-to-tailwind-ai\backend\.npm-cache\_logs\2026-10-13T05_16_57_246Z-
+10 verbose logfile C:\Users\USER\Downloads\design-to-tailwind-ai\design-to-tailwind-ai\backend\.npm-cache\_logs\2026-10-13T05_16_57_246Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+13 silly idealTree buildDeps
+14 silly reify mark retired [
+14 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\array-flatten'
+14 silly reify ]
+15 silly reify mark retired [
+15 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\accepts'
+15 silly reify ]
+16 silly reify mark retired [
+16 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\bson'
+16 silly reify ]
+17 silly reify mark retired [
+17 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\bytes'
+17 silly reify ]
+18 silly reify mark retired [
+18 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\body-parser'
+18 silly reify ]
+19 silly reify mark retired [
+19 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\call-bind-apply-helpers'
+19 silly reify ]
+20 silly reify mark retired [
+20 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\call-bound'
+20 silly reify ]
+21 silly reify mark retired [
+21 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\content-disposition'
+21 silly reify ]
+22 silly reify mark retired [
+22 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\cookie'
+22 silly reify ]
+23 silly reify mark retired [
+23 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\debug'
+23 silly reify ]
+24 silly reify mark retired [
+24 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\content-type'
+24 silly reify ]
+25 silly reify mark retired [
+25 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\cors'
+25 silly reify ]
+26 silly reify mark retired [
+26 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\cookie-signature'
+26 silly reify ]
+27 silly reify mark retired [
+27 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\depd'
+27 silly reify ]
+28 silly reify mark retired [
+28 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\dunder-proto'
+28 silly reify ]
+29 silly reify mark retired [
+29 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\destroy'
+29 silly reify ]
+30 silly reify mark retired [
+30 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\ee-first'
+30 silly reify ]
+31 silly reify mark retired [
+31 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\es-errors'
+31 silly reify ]
+32 silly reify mark retired [
+32 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\encodeurl'
+32 silly reify ]
+33 silly reify mark retired [
+33 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\es-define-property'
+33 silly reify ]
+34 silly reify mark retired [
+34 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\es-object-atoms'
+34 silly reify ]
+35 silly reify mark retired [
+35 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\etag'
+35 silly reify ]
+36 silly reify mark retired [
+36 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\escape-html'
+36 silly reify ]
+37 silly reify mark retired [
+37 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\express'
+37 silly reify ]
+38 silly reify mark retired [
+38 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\express-rate-limit'
+38 silly reify ]
+39 silly reify mark retired [
+39 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\forwarded'
+39 silly reify ]
+40 silly reify mark retired [
+40 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\finalhandler'
+40 silly reify ]
+41 silly reify mark retired [
+41 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\fresh'
+41 silly reify ]
+42 silly reify mark retired [
+42 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\function-bind'
+42 silly reify ]
+43 silly reify mark retired [
+43 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\get-proto'
+43 silly reify ]
+44 silly reify mark retired [
+44 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\has-symbols'
+44 silly reify ]
+45 silly reify mark retired [
+45 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\gopd'
+45 silly reify ]
+46 silly reify mark retired [
+46 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\hasown'
+46 silly reify ]
+47 silly reify mark retired [
+47 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\http-errors'
+47 silly reify ]
+48 silly reify mark retired [
+48 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\inherits'
+48 silly reify ]
+49 silly reify mark retired [
+49 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\get-intrinsic'
+49 silly reify ]
+50 silly reify mark retired [
+50 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\ipaddr.js'
+50 silly reify ]
+51 silly reify mark retired [
+51 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\kareem'
+51 silly reify ]
+52 silly reify mark retired [
+52 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\math-intrinsics'
+52 silly reify ]
+53 silly reify mark retired [
+53 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\media-typer'
+53 silly reify ]
+54 silly reify mark retired [
+54 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\memory-pager'
+54 silly reify ]
+55 silly reify mark retired [
+55 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\iconv-lite'
+55 silly reify ]
+56 silly reify mark retired [
+56 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\merge-descriptors'
+56 silly reify ]
+57 silly reify mark retired [
+57 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mime'
+57 silly reify ]
+58 silly reify mark retired [
+58 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mime-db'
+58 silly reify ]
+59 silly reify mark retired [
+59 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\methods'
+59 silly reify ]
+60 silly reify mark retired [
+60 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mime-types'
+60 silly reify ]
+61 silly reify mark retired [
+61 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mongodb'
+61 silly reify ]
+62 silly reify mark retired [
+62 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mongodb-connection-string-url'
+62 silly reify ]
+63 silly reify mark retired [
+63 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mongoose'
+63 silly reify ]
+64 silly reify mark retired [
+64 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mpath'
+64 silly reify ]
+65 silly reify mark retired [
+65 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\ms'
+65 silly reify ]
+66 silly reify mark retired [
+66 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mquery'
+66 silly reify ]
+67 silly reify mark retired [
+67 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\negotiator'
+67 silly reify ]
+68 silly reify mark retired [
+68 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\on-finished'
+68 silly reify ]
+69 silly reify mark retired [
+69 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\object-inspect'
+69 silly reify ]
+70 silly reify mark retired [
+70 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\parseurl'
+70 silly reify ]
+71 silly reify mark retired [
+71 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\path-to-regexp'
+71 silly reify ]
+72 silly reify mark retired [
+72 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\proxy-addr'
+72 silly reify ]
+73 silly reify mark retired [
+73 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\qs'
+73 silly reify ]
+74 silly reify mark retired [
+74 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\raw-body'
+74 silly reify ]
+75 silly reify mark retired [
+75 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\range-parser'
+75 silly reify ]
+76 silly reify mark retired [
+76 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\safe-buffer'
+76 silly reify ]
+77 silly reify mark retired [
+77 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\send'
+77 silly reify ]
+78 silly reify mark retired [
+78 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\safer-buffer'
+78 silly reify ]
+79 silly reify mark retired [
+79 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\serve-static'
+79 silly reify ]
+80 silly reify mark retired [
+80 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel'
+80 silly reify ]
+81 silly reify mark retired [
+81 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel-list'
+81 silly reify ]
+82 silly reify mark retired [
+82 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel-map'
+82 silly reify ]
+83 silly reify mark retired [
+83 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel-weakmap'
+83 silly reify ]
+84 silly reify mark retired [
+84 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\sift'
+84 silly reify ]
+85 silly reify mark retired [
+85 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\setprototypeof'
+85 silly reify ]
+86 silly reify mark retired [
+86 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\sparse-bitfield'
+86 silly reify ]
+87 silly reify mark retired [
+87 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\tr46'
+87 silly reify ]
+88 silly reify mark retired [
+88 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\toidentifier'
+88 silly reify ]
+89 silly reify mark retired [
+89 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\type-is'
+89 silly reify ]
+90 silly reify mark retired [
+90 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\statuses'
+90 silly reify ]
+91 silly reify mark retired [
+91 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\unpipe'
+91 silly reify ]
+92 silly reify mark retired [
+92 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\vary'
+92 silly reify ]
+93 silly reify mark retired [
+93 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\utils-merge'
+93 silly reify ]
+94 silly reify mark retired [
+94 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\webidl-conversions'
+94 silly reify ]
+95 silly reify mark retired [
+95 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\whatwg-url'
+95 silly reify ]
+96 silly reify mark retired [
+96 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@types\\webidl-conversions'
+96 silly reify ]
+97 silly reify mark retired [
+97 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@mongodb-js\\saslprep'
+97 silly reify ]
+98 silly reify mark retired [
+98 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@types\\whatwg-url'
+98 silly reify ]
+99 silly reify moves {
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\array-flatten': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.array-flatten-9Hg9iSju',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\accepts': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.accepts-1jbs5TRZ',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\bson': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.bson-f4pYSIN2',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\bytes': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.bytes-9ggLHMqY',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\body-parser': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.body-parser-SUFk1Grp',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\call-bind-apply-helpers': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.call-bind-apply-helpers-WZX5GGpj',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\call-bound': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.call-bound-LSMl80q8',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\content-disposition': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.content-disposition-Wu0FFrfZ',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\cookie': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.cookie-EGmIFkmq',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\debug': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.debug-TucdDmir',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\content-type': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.content-type-vGYyjymS',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\cors': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.cors-9NTQ41QP',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\cookie-signature': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.cookie-signature-L014AR4i',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\depd': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.depd-zAqiX8q1',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\dunder-proto': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.dunder-proto-7GJbE1Qe',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\destroy': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.destroy-n5pBzOoA',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\ee-first': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.ee-first-aTMfUtUD',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\es-errors': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.es-errors-FFfgHp2B',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\encodeurl': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.encodeurl-TCp1qsXj',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\es-define-property': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.es-define-property-4z16sLUn',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\es-object-atoms': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.es-object-atoms-MT2Iosej',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\etag': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.etag-EoX9aH1t',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\escape-html': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.escape-html-Z0yreIR0',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\express': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.express-kwclXXwn',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\express-rate-limit': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.express-rate-limit-wxbvTbJD',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\forwarded': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.forwarded-dOk5MOCu',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\finalhandler': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.finalhandler-luE5wX1B',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\fresh': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.fresh-pyDDjNIo',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\function-bind': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.function-bind-tM94GdXZ',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\get-proto': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.get-proto-1m0Tg2Ic',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\has-symbols': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.has-symbols-3T94YtRP',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\gopd': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.gopd-QoVKtcnK',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\hasown': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.hasown-kmlwxmwR',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\http-errors': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.http-errors-F9b1fdC4',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\inherits': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.inherits-5C5sBxWw',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\get-intrinsic': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.get-intrinsic-YX5QDMTN',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\ipaddr.js': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.ipaddr.js-5RQDarZ4',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\kareem': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.kareem-qqTY8yDv',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\math-intrinsics': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.math-intrinsics-9GIwcN3j',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\media-typer': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.media-typer-NnNFClk7',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\memory-pager': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.memory-pager-MVuLrzJv',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\iconv-lite': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.iconv-lite-WmHdnef8',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\merge-descriptors': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.merge-descriptors-eauF876j',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mime': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mime-R44TYFIY',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mime-db': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mime-db-guo3aRp1',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\methods': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.methods-UeKRfZ9X',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mime-types': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mime-types-QMmpVaJy',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mongodb': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mongodb-L4tHB6GY',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mongodb-connection-string-url': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mongodb-connection-string-url-XLNlNCFi',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mongoose': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mongoose-gV2vPMte',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mpath': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mpath-zBT8f56I',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\ms': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.ms-mg9j67yX',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\mquery': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.mquery-EkrBS8WE',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\negotiator': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.negotiator-nR5QIuGI',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\on-finished': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.on-finished-Shl3Qf9e',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\object-inspect': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.object-inspect-P2PcAoyR',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\parseurl': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.parseurl-xTQAcPtg',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\path-to-regexp': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.path-to-regexp-t58XilRf',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\proxy-addr': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.proxy-addr-E4JOPQKB',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\qs': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.qs-TQ6eo9wt',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\raw-body': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.raw-body-nfcYHfcp',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\range-parser': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.range-parser-83NIvfih',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\safe-buffer': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.safe-buffer-nSv0pyrO',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\send': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.send-kHoqgqof',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\safer-buffer': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.safer-buffer-S0dzfO9a',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\serve-static': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.serve-static-xFiXg1EG',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.side-channel-QbBZFbav',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel-list': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.side-channel-list-XUB1hD6v',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel-map': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.side-channel-map-pKPymeOE',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\side-channel-weakmap': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.side-channel-weakmap-k3w8ToYq',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\sift': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.sift-gNexcgLD',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\setprototypeof': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.setprototypeof-6WLDMBfm',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\sparse-bitfield': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.sparse-bitfield-8LEWT9Ne',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\tr46': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.tr46-YYad2jTf',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\toidentifier': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.toidentifier-NcZaQmZt',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\type-is': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.type-is-vYHJFmdY',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\statuses': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.statuses-vw62aWgD',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\unpipe': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.unpipe-Ogf1KEHf',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\vary': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.vary-bHhg9cm2',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\utils-merge': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.utils-merge-emmrmxPe',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\webidl-conversions': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.webidl-conversions-0u0txpwf',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\whatwg-url': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\.whatwg-url-lFMV1Xd6',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@types\\webidl-conversions': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@types\\.webidl-conversions-62IG0e3C',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@mongodb-js\\saslprep': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@mongodb-js\\.saslprep-qXWOqGnu',
+99 silly reify   'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@types\\whatwg-url': 'C:\\Users\\USER\\Downloads\\design-to-tailwind-ai\\design-to-tailwind-ai\\backend\\node_modules\\@types\\.whatwg-url-Q2iYSxRy'
+99 silly reify }
+100 silly audit bulk request {
+100 silly audit   '@mongodb-js/saslprep': [ '1.6.0' ],
+100 silly audit   '@types/webidl-conversions': [ '7.0.3' ],
+100 silly audit   '@types/whatwg-url': [ '11.0.5' ],
+100 silly audit   accepts: [ '1.3.8' ],
+100 silly audit   'array-flatten': [ '1.1.1' ],
+100 silly audit   'body-parser': [ '1.20.8' ],
+100 silly audit   bson: [ '6.10.4' ],
+100 silly audit   bytes: [ '3.1.2' ],
+100 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+100 silly audit   'call-bound': [ '1.0.4' ],
+100 silly audit   'content-disposition': [ '0.5.4' ],
+100 silly audit   'content-type': [ '1.0.5' ],
+100 silly audit   cookie: [ '0.7.2' ],
+100 silly audit   'cookie-signature': [ '1.0.7' ],
+100 silly audit   cors: [ '2.8.6' ],
+100 silly audit   debug: [ '2.6.9', '4.4.3' ],
+100 silly audit   depd: [ '2.0.0' ],
+100 silly audit   destroy: [ '1.2.0' ],
+100 silly audit   'dunder-proto': [ '1.0.1' ],
+100 silly audit   'ee-first': [ '1.1.1' ],
+100 silly audit   encodeurl: [ '2.0.0' ],
+100 silly audit   'es-define-property': [ '1.0.1' ],
+100 silly audit   'es-errors': [ '1.3.0' ],
+100 silly audit   'es-object-atoms': [ '1.1.2' ],
+100 silly audit   'escape-html': [ '1.0.3' ],
+100 silly audit   etag: [ '1.8.1' ],
+100 silly audit   express: [ '4.22.3' ],
+100 silly audit   'express-rate-limit': [ '7.5.1' ],
+100 silly audit   finalhandler: [ '1.3.2' ],
+100 silly audit   forwarded: [ '0.2.0' ],
+100 silly audit   fresh: [ '0.5.2' ],
+100 silly audit   'function-bind': [ '1.1.2' ],
+100 silly audit   'get-intrinsic': [ '1.3.0' ],
+100 silly audit   'get-proto': [ '1.0.1' ],
+100 silly audit   gopd: [ '1.2.0' ],
+100 silly audit   'has-symbols': [ '1.1.0' ],
+100 silly audit   hasown: [ '2.0.4' ],
+100 silly audit   'http-errors': [ '2.0.1' ],
+100 silly audit   'iconv-lite': [ '0.4.24' ],
+100 silly audit   inherits: [ '2.0.4' ],
+100 silly audit   'ipaddr.js': [ '1.9.1' ],
+100 silly audit   kareem: [ '2.6.3' ],
+100 silly audit   'math-intrinsics': [ '1.1.0' ],
+100 silly audit   'media-typer': [ '0.3.0' ],
+100 silly audit   'memory-pager': [ '1.5.0' ],
+100 silly audit   'merge-descriptors': [ '1.0.3' ],
+100 silly audit   methods: [ '1.1.2' ],
+100 silly audit   mime: [ '1.6.0' ],
+100 silly audit   'mime-db': [ '1.52.0' ],
+100 silly audit   'mime-types': [ '2.1.35' ],
+100 silly audit   mongodb: [ '6.20.0' ],
+100 silly audit   'mongodb-connection-string-url': [ '3.0.2' ],
+100 silly audit   mongoose: [ '8.24.5' ],
+100 silly audit   ms: [ '2.1.3', '2.0.0' ],
+100 silly audit   mpath: [ '0.9.0' ],
+100 silly audit   mquery: [ '5.0.0' ],
+100 silly audit   negotiator: [ '0.6.3' ],
+100 silly audit   'object-assign': [ '4.1.1' ],
+100 silly audit   'object-inspect': [ '1.13.4' ],
+100 silly audit   'on-finished': [ '2.4.1' ],
+100 silly audit   parseurl: [ '1.3.3' ],
+100 silly audit   'path-to-regexp': [ '0.1.13' ],
+100 silly audit   'proxy-addr': [ '2.0.8' ],
+100 silly audit   punycode: [ '2.3.1' ],
+100 silly audit   qs: [ '6.16.0' ],
+100 silly audit   'range-parser': [ '1.2.1' ],
+100 silly audit   'raw-body': [ '2.5.3' ],
+100 silly audit   'safe-buffer': [ '5.2.1' ],
+100 silly audit   'safer-buffer': [ '2.1.2' ],
+100 silly audit   send: [ '0.19.2' ],
+100 silly audit   'serve-static': [ '1.16.3' ],
+100 silly audit   setprototypeof: [ '1.2.0' ],
+100 silly audit   'side-channel': [ '1.1.1' ],
+100 silly audit   'side-channel-list': [ '1.0.1' ],
+100 silly audit   'side-channel-map': [ '1.0.1' ],
+100 silly audit   'side-channel-weakmap': [ '1.0.2' ],
+100 silly audit   sift: [ '17.1.3' ],
+100 silly audit   'sparse-bitfield': [ '3.0.3' ],
+100 silly audit   statuses: [ '2.0.2' ],
+100 silly audit   toidentifier: [ '1.0.1' ],
+100 silly audit   tr46: [ '5.1.1' ],
+100 silly audit   'type-is': [ '1.6.18' ],
+100 silly audit   unpipe: [ '1.0.0' ],
+100 silly audit   'utils-merge': [ '1.0.1' ],
+100 silly audit   vary: [ '1.1.2' ],
+100 silly audit   'webidl-conversions': [ '7.0.0' ],
+100 silly audit   'whatwg-url': [ '14.2.0' ]
+100 silly audit }
+101 http cache whatwg-url@https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz 1ms (cache hit)
+102 http cache @types/whatwg-url@https://registry.npmjs.org/@types/whatwg-url/-/whatwg-url-11.0.5.tgz 0ms (cache hit)
+103 http cache @mongodb-js/saslprep@https://registry.npmjs.org/@mongodb-js/saslprep/-/saslprep-1.6.0.tgz 1ms (cache hit)
+104 http cache statuses@https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz 0ms (cache hit)
+105 http cache @types/webidl-conversions@https://registry.npmjs.org/@types/webidl-conversions/-/webidl-conversions-7.0.3.tgz 0ms (cache hit)
+106 http cache webidl-conversions@https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-7.0.0.tgz 0ms (cache hit)
+107 http cache vary@https://registry.npmjs.org/vary/-/vary-1.1.2.tgz 0ms (cache hit)
+108 http cache unpipe@https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz 0ms (cache hit)
+109 http cache toidentifier@https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz 1ms (cache hit)
+110 http cache type-is@https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz 0ms (cache hit)
+111 http cache utils-merge@https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz 0ms (cache hit)
+112 http cache tr46@https://registry.npmjs.org/tr46/-/tr46-5.1.1.tgz 0ms (cache hit)
+113 http cache sift@https://registry.npmjs.org/sift/-/sift-17.1.3.tgz 0ms (cache hit)
+114 http cache sparse-bitfield@https://registry.npmjs.org/sparse-bitfield/-/sparse-bitfield-3.0.3.tgz 0ms (cache hit)
+115 http cache side-channel-weakmap@https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz 0ms (cache hit)
+116 http cache setprototypeof@https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz 0ms (cache hit)
+117 http cache side-channel-map@https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz 0ms (cache hit)
+118 http cache side-channel@https://registry.npmjs.org/side-channel/-/side-channel-1.1.1.tgz 0ms (cache hit)
+119 http cache safer-buffer@https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz 0ms (cache hit)
+120 http cache side-channel-list@https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.1.tgz 0ms (cache hit)
+121 http cache range-parser@https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz 0ms (cache hit)
+122 http cache serve-static@https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz 0ms (cache hit)
+123 http cache send@https://registry.npmjs.org/send/-/send-0.19.2.tgz 0ms (cache hit)
+124 http cache safe-buffer@https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz 0ms (cache hit)
+125 http cache qs@https://registry.npmjs.org/qs/-/qs-6.16.0.tgz 0ms (cache hit)
+126 http cache proxy-addr@https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.8.tgz 0ms (cache hit)
+127 http cache raw-body@https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz 0ms (cache hit)
+128 http cache path-to-regexp@https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.13.tgz 0ms (cache hit)
+129 http cache object-inspect@https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz 0ms (cache hit)
+130 http cache negotiator@https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz 0ms (cache hit)
+131 http cache parseurl@https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz 0ms (cache hit)
+132 http cache mquery@https://registry.npmjs.org/mquery/-/mquery-5.0.0.tgz 0ms (cache hit)
+133 http cache mongoose@https://registry.npmjs.org/mongoose/-/mongoose-8.24.5.tgz 0ms (cache hit)
+134 http cache on-finished@https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz 0ms (cache hit)
+135 http cache mpath@https://registry.npmjs.org/mpath/-/mpath-0.9.0.tgz 0ms (cache hit)
+136 http cache ms@https://registry.npmjs.org/ms/-/ms-2.0.0.tgz 0ms (cache hit)
+137 http cache mongodb-connection-string-url@https://registry.npmjs.org/mongodb-connection-string-url/-/mongodb-connection-string-url-3.0.2.tgz 0ms (cache hit)
+138 http cache mime-types@https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz 0ms (cache hit)
+139 http cache mongodb@https://registry.npmjs.org/mongodb/-/mongodb-6.20.0.tgz 0ms (cache hit)
+140 http cache mime-db@https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz 0ms (cache hit)
+141 http cache methods@https://registry.npmjs.org/methods/-/methods-1.1.2.tgz 0ms (cache hit)
+142 http cache merge-descriptors@https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz 0ms (cache hit)
+143 http cache iconv-lite@https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz 0ms (cache hit)
+144 http cache mime@https://registry.npmjs.org/mime/-/mime-1.6.0.tgz 0ms (cache hit)
+145 http cache math-intrinsics@https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz 0ms (cache hit)
+146 http cache memory-pager@https://registry.npmjs.org/memory-pager/-/memory-pager-1.5.0.tgz 0ms (cache hit)
+147 http cache ipaddr.js@https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz 0ms (cache hit)
+148 http cache media-typer@https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz 0ms (cache hit)
+149 http cache kareem@https://registry.npmjs.org/kareem/-/kareem-2.6.3.tgz 0ms (cache hit)
+150 http cache get-intrinsic@https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz 0ms (cache hit)
+151 http cache http-errors@https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz 0ms (cache hit)
+152 http cache gopd@https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz 0ms (cache hit)
+153 http cache inherits@https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz 0ms (cache hit)
+154 http cache has-symbols@https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz 0ms (cache hit)
+155 http cache get-proto@https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz 0ms (cache hit)
+156 http cache hasown@https://registry.npmjs.org/hasown/-/hasown-2.0.4.tgz 0ms (cache hit)
+157 http cache fresh@https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz 0ms (cache hit)
+158 http cache function-bind@https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz 0ms (cache hit)
+159 http cache forwarded@https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz 0ms (cache hit)
+160 http cache express-rate-limit@https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-7.5.1.tgz 0ms (cache hit)
+161 http cache escape-html@https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz 0ms (cache hit)
+162 http cache finalhandler@https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz 0ms (cache hit)
+163 http cache express@https://registry.npmjs.org/express/-/express-4.22.3.tgz 0ms (cache hit)
+164 http cache es-object-atoms@https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.2.tgz 0ms (cache hit)
+165 http cache es-define-property@https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz 0ms (cache hit)
+166 http cache encodeurl@https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz 0ms (cache hit)
+167 http cache etag@https://registry.npmjs.org/etag/-/etag-1.8.1.tgz 0ms (cache hit)
+168 http cache es-errors@https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz 0ms (cache hit)
+169 http cache destroy@https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz 0ms (cache hit)
+170 http cache ee-first@https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz 0ms (cache hit)
+171 http cache depd@https://registry.npmjs.org/depd/-/depd-2.0.0.tgz 0ms (cache hit)
+172 http cache cookie-signature@https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz 0ms (cache hit)
+173 http cache cors@https://registry.npmjs.org/cors/-/cors-2.8.6.tgz 0ms (cache hit)
+174 http cache dunder-proto@https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz 0ms (cache hit)
+175 http cache debug@https://registry.npmjs.org/debug/-/debug-2.6.9.tgz 0ms (cache hit)
+176 http cache content-type@https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz 0ms (cache hit)
+177 http cache content-disposition@https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz 0ms (cache hit)
+178 http cache cookie@https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz 0ms (cache hit)
+179 http cache body-parser@https://registry.npmjs.org/body-parser/-/body-parser-1.20.8.tgz 0ms (cache hit)
+180 http cache bytes@https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz 0ms (cache hit)
+181 http cache call-bound@https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz 0ms (cache hit)
+182 http cache accepts@https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz 0ms (cache hit)
+183 http cache call-bind-apply-helpers@https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz 0ms (cache hit)
+184 http cache bson@https://registry.npmjs.org/bson/-/bson-6.10.4.tgz 0ms (cache hit)
+185 http cache array-flatten@https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz 0ms (cache hit)
+186 http cache debug@https://registry.npmjs.org/debug/-/debug-4.4.3.tgz 0ms (cache hit)
+187 http cache ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 0ms (cache hit)
+188 http cache ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 0ms (cache hit)
+189 http cache ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 0ms (cache hit)
+190 silly tarball no local data for whatwg-url@https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz. Extracting by manifest.
+191 silly tarball no local data for @types/whatwg-url@https://registry.npmjs.org/@types/whatwg-url/-/whatwg-url-11.0.5.tgz. Extracting by manifest.
+192 silly tarball no local data for @mongodb-js/saslprep@https://registry.npmjs.org/@mongodb-js/saslprep/-/saslprep-1.6.0.tgz. Extracting by manifest.
+193 silly tarball no local data for statuses@https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz. Extracting by manifest.
+194 silly tarball no local data for @types/webidl-conversions@https://registry.npmjs.org/@types/webidl-conversions/-/webidl-conversions-7.0.3.tgz. Extracting by manifest.
+195 silly tarball no local data for webidl-conversions@https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-7.0.0.tgz. Extracting by manifest.
+196 silly tarball no local data for vary@https://registry.npmjs.org/vary/-/vary-1.1.2.tgz. Extracting by manifest.
+197 silly tarball no local data for unpipe@https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz. Extracting by manifest.
+198 silly tarball no local data for toidentifier@https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz. Extracting by manifest.
+199 silly tarball no local data for type-is@https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz. Extracting by manifest.
+200 silly tarball no local data for utils-merge@https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz. Extracting by manifest.
+201 silly tarball no local data for tr46@https://registry.npmjs.org/tr46/-/tr46-5.1.1.tgz. Extracting by manifest.
+202 silly tarball no local data for sift@https://registry.npmjs.org/sift/-/sift-17.1.3.tgz. Extracting by manifest.
+203 silly tarball no local data for sparse-bitfield@https://registry.npmjs.org/sparse-bitfield/-/sparse-bitfield-3.0.3.tgz. Extracting by manifest.
+204 silly tarball no local data for side-channel-weakmap@https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz. Extracting by manifest.
+205 silly tarball no local data for setprototypeof@https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz. Extracting by manifest.
+206 silly tarball no local data for side-channel-map@https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz. Extracting by manifest.
+207 silly tarball no local data for side-channel@https://registry.npmjs.org/side-channel/-/side-channel-1.1.1.tgz. Extracting by manifest.
+208 silly tarball no local data for safer-buffer@https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz. Extracting by manifest.
+209 silly tarball no local data for side-channel-list@https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.1.tgz. Extracting by manifest.
+210 silly tarball no local data for range-parser@https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz. Extracting by manifest.
+211 silly tarball no local data for serve-static@https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz. Extracting by manifest.
+212 silly tarball no local data for send@https://registry.npmjs.org/send/-/send-0.19.2.tgz. Extracting by manifest.
+213 silly tarball no local data for safe-buffer@https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz. Extracting by manifest.
+214 silly tarball no local data for qs@https://registry.npmjs.org/qs/-/qs-6.16.0.tgz. Extracting by manifest.
+215 silly tarball no local data for proxy-addr@https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.8.tgz. Extracting by manifest.
+216 silly tarball no local data for raw-body@https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz. Extracting by manifest.
+217 silly tarball no local data for path-to-regexp@https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.13.tgz. Extracting by manifest.
+218 silly tarball no local data for object-inspect@https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz. Extracting by manifest.
+219 silly tarball no local data for negotiator@https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz. Extracting by manifest.
+220 silly tarball no local data for parseurl@https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz. Extracting by manifest.
+221 silly tarball no local data for mquery@https://registry.npmjs.org/mquery/-/mquery-5.0.0.tgz. Extracting by manifest.
+222 silly tarball no local data for mongoose@https://registry.npmjs.org/mongoose/-/mongoose-8.24.5.tgz. Extracting by manifest.
+223 silly tarball no local data for on-finished@https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz. Extracting by manifest.
+224 silly tarball no local data for mpath@https://registry.npmjs.org/mpath/-/mpath-0.9.0.tgz. Extracting by manifest.
+225 silly tarball no local data for ms@https://registry.npmjs.org/ms/-/ms-2.0.0.tgz. Extracting by manifest.
+226 silly tarball no local data for mongodb-connection-string-url@https://registry.npmjs.org/mongodb-connection-string-url/-/mongodb-connection-string-url-3.0.2.tgz. Extracting by manifest.
+227 silly tarball no local data for mime-types@https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz. Extracting by manifest.
+228 silly tarball no local data for mongodb@https://registry.npmjs.org/mongodb/-/mongodb-6.20.0.tgz. Extracting by manifest.
+229 silly tarball no local data for mime-db@https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz. Extracting by manifest.
+230 silly tarball no local data for methods@https://registry.npmjs.org/methods/-/methods-1.1.2.tgz. Extracting by manifest.
+231 silly tarball no local data for merge-descriptors@https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz. Extracting by manifest.
+232 silly tarball no local data for iconv-lite@https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz. Extracting by manifest.
+233 silly tarball no local data for mime@https://registry.npmjs.org/mime/-/mime-1.6.0.tgz. Extracting by manifest.
+234 silly tarball no local data for math-intrinsics@https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz. Extracting by manifest.
+235 silly tarball no local data for memory-pager@https://registry.npmjs.org/memory-pager/-/memory-pager-1.5.0.tgz. Extracting by manifest.
+236 silly tarball no local data for ipaddr.js@https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz. Extracting by manifest.
+237 silly tarball no local data for media-typer@https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz. Extracting by manifest.
+238 silly tarball no local data for kareem@https://registry.npmjs.org/kareem/-/kareem-2.6.3.tgz. Extracting by manifest.
+239 silly tarball no local data for get-intrinsic@https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz. Extracting by manifest.
+240 silly tarball no local data for http-errors@https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz. Extracting by manifest.
+241 silly tarball no local data for gopd@https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz. Extracting by manifest.
+242 silly tarball no local data for inherits@https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz. Extracting by manifest.
+243 silly tarball no local data for has-symbols@https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz. Extracting by manifest.
+244 silly tarball no local data for get-proto@https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz. Extracting by manifest.
+245 silly tarball no local data for hasown@https://registry.npmjs.org/hasown/-/hasown-2.0.4.tgz. Extracting by manifest.
+246 silly tarball no local data for fresh@https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz. Extracting by manifest.
+247 silly tarball no local data for function-bind@https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz. Extracting by manifest.
+248 silly tarball no local data for forwarded@https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz. Extracting by manifest.
+249 silly tarball no local data for express-rate-limit@https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-7.5.1.tgz. Extracting by manifest.
+250 silly tarball no local data for escape-html@https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz. Extracting by manifest.
+251 silly tarball no local data for finalhandler@https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz. Extracting by manifest.
+252 silly tarball no local data for express@https://registry.npmjs.org/express/-/express-4.22.3.tgz. Extracting by manifest.
+253 silly tarball no local data for es-object-atoms@https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.2.tgz. Extracting by manifest.
+254 silly tarball no local data for es-define-property@https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz. Extracting by manifest.
+255 silly tarball no local data for encodeurl@https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz. Extracting by manifest.
+256 silly tarball no local data for etag@https://registry.npmjs.org/etag/-/etag-1.8.1.tgz. Extracting by manifest.
+257 silly tarball no local data for es-errors@https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz. Extracting by manifest.
+258 silly tarball no local data for destroy@https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz. Extracting by manifest.
+259 silly tarball no local data for ee-first@https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz. Extracting by manifest.
+260 silly tarball no local data for depd@https://registry.npmjs.org/depd/-/depd-2.0.0.tgz. Extracting by manifest.
+261 silly tarball no local data for cookie-signature@https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz. Extracting by manifest.
+262 silly tarball no local data for cors@https://registry.npmjs.org/cors/-/cors-2.8.6.tgz. Extracting by manifest.
+263 silly tarball no local data for dunder-proto@https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz. Extracting by manifest.
+264 silly tarball no local data for debug@https://registry.npmjs.org/debug/-/debug-2.6.9.tgz. Extracting by manifest.
+265 silly tarball no local data for content-type@https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz. Extracting by manifest.
+266 silly tarball no local data for content-disposition@https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz. Extracting by manifest.
+267 silly tarball no local data for cookie@https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz. Extracting by manifest.
+268 silly tarball no local data for body-parser@https://registry.npmjs.org/body-parser/-/body-parser-1.20.8.tgz. Extracting by manifest.
+269 silly tarball no local data for bytes@https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz. Extracting by manifest.
+270 silly tarball no local data for call-bound@https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz. Extracting by manifest.
+271 silly tarball no local data for accepts@https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz. Extracting by manifest.
+272 silly tarball no local data for call-bind-apply-helpers@https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz. Extracting by manifest.
+273 silly tarball no local data for bson@https://registry.npmjs.org/bson/-/bson-6.10.4.tgz. Extracting by manifest.
+274 silly tarball no local data for array-flatten@https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz. Extracting by manifest.
+275 silly tarball no local data for debug@https://registry.npmjs.org/debug/-/debug-4.4.3.tgz. Extracting by manifest.
+276 silly tarball no local data for ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz. Extracting by manifest.
+277 silly tarball no local data for ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz. Extracting by manifest.
+278 silly tarball no local data for ms@https://registry.npmjs.org/ms/-/ms-2.1.3.tgz. Extracting by manifest.
+279 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 447ms
+280 silly audit report {}
+281 http fetch GET 200 https://registry.npmjs.org/range-parser/-/range-parser-1.2.1.tgz 702ms (cache miss)
+282 http fetch GET 200 https://registry.npmjs.org/statuses/-/statuses-2.0.2.tgz 710ms (cache miss)
+283 http fetch GET 200 https://registry.npmjs.org/unpipe/-/unpipe-1.0.0.tgz 707ms (cache miss)
+284 http fetch GET 200 https://registry.npmjs.org/setprototypeof/-/setprototypeof-1.2.0.tgz 720ms (cache miss)
+285 http fetch GET 200 https://registry.npmjs.org/parseurl/-/parseurl-1.3.3.tgz 750ms (cache miss)
+286 http fetch GET 200 https://registry.npmjs.org/@types/webidl-conversions/-/webidl-conversions-7.0.3.tgz 757ms (cache miss)
+287 http fetch GET 200 https://registry.npmjs.org/safe-buffer/-/safe-buffer-5.2.1.tgz 751ms (cache miss)
+288 http fetch GET 200 https://registry.npmjs.org/methods/-/methods-1.1.2.tgz 760ms (cache miss)
+289 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.0.0.tgz 764ms (cache miss)
+290 http fetch GET 200 https://registry.npmjs.org/merge-descriptors/-/merge-descriptors-1.0.3.tgz 762ms (cache miss)
+291 http fetch GET 200 https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz 811ms (cache miss)
+292 http fetch GET 200 https://registry.npmjs.org/webidl-conversions/-/webidl-conversions-7.0.0.tgz 814ms (cache miss)
+293 http fetch GET 200 https://registry.npmjs.org/vary/-/vary-1.1.2.tgz 815ms (cache miss)
+294 http fetch GET 200 https://registry.npmjs.org/path-to-regexp/-/path-to-regexp-0.1.13.tgz 808ms (cache miss)
+295 http fetch GET 200 https://registry.npmjs.org/type-is/-/type-is-1.6.18.tgz 815ms (cache miss)
+296 http fetch GET 200 https://registry.npmjs.org/on-finished/-/on-finished-2.4.1.tgz 810ms (cache miss)
+297 http fetch GET 200 https://registry.npmjs.org/inherits/-/inherits-2.0.4.tgz 820ms (cache miss)
+298 http fetch GET 200 https://registry.npmjs.org/media-typer/-/media-typer-0.3.0.tgz 824ms (cache miss)
+299 http fetch GET 200 https://registry.npmjs.org/fresh/-/fresh-0.5.2.tgz 822ms (cache miss)
+300 http fetch GET 200 https://registry.npmjs.org/toidentifier/-/toidentifier-1.0.1.tgz 838ms (cache miss)
+301 http fetch GET 200 https://registry.npmjs.org/forwarded/-/forwarded-0.2.0.tgz 834ms (cache miss)
+302 http fetch GET 200 https://registry.npmjs.org/escape-html/-/escape-html-1.0.3.tgz 835ms (cache miss)
+303 http fetch GET 200 https://registry.npmjs.org/finalhandler/-/finalhandler-1.3.2.tgz 839ms (cache miss)
+304 http fetch GET 200 https://registry.npmjs.org/sparse-bitfield/-/sparse-bitfield-3.0.3.tgz 852ms (cache miss)
+305 http fetch GET 200 https://registry.npmjs.org/es-object-atoms/-/es-object-atoms-1.1.2.tgz 842ms (cache miss)
+306 http fetch GET 200 https://registry.npmjs.org/cookie-signature/-/cookie-signature-1.0.7.tgz 844ms (cache miss)
+307 http fetch GET 200 https://registry.npmjs.org/memory-pager/-/memory-pager-1.5.0.tgz 866ms (cache miss)
+308 http fetch GET 200 https://registry.npmjs.org/es-define-property/-/es-define-property-1.0.1.tgz 865ms (cache miss)
+309 http fetch GET 200 https://registry.npmjs.org/encodeurl/-/encodeurl-2.0.0.tgz 867ms (cache miss)
+310 http fetch GET 200 https://registry.npmjs.org/etag/-/etag-1.8.1.tgz 869ms (cache miss)
+311 http fetch GET 200 https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.8.tgz 910ms (cache miss)
+312 http fetch GET 200 https://registry.npmjs.org/content-type/-/content-type-1.0.5.tgz 900ms (cache miss)
+313 http fetch GET 200 https://registry.npmjs.org/content-disposition/-/content-disposition-0.5.4.tgz 918ms (cache miss)
+314 http fetch GET 200 https://registry.npmjs.org/ee-first/-/ee-first-1.1.1.tgz 922ms (cache miss)
+315 http fetch GET 200 https://registry.npmjs.org/cors/-/cors-2.8.6.tgz 921ms (cache miss)
+316 http fetch GET 200 https://registry.npmjs.org/http-errors/-/http-errors-2.0.1.tgz 927ms (cache miss)
+317 http fetch GET 200 https://registry.npmjs.org/array-flatten/-/array-flatten-1.1.1.tgz 924ms (cache miss)
+318 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 932ms (cache miss)
+319 http fetch GET 200 https://registry.npmjs.org/accepts/-/accepts-1.3.8.tgz 947ms (cache miss)
+320 http fetch GET 200 https://registry.npmjs.org/cookie/-/cookie-0.7.2.tgz 955ms (cache miss)
+321 http fetch GET 200 https://registry.npmjs.org/ipaddr.js/-/ipaddr.js-1.9.1.tgz 971ms (cache miss)
+322 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 975ms (cache miss)
+323 http fetch GET 200 https://registry.npmjs.org/raw-body/-/raw-body-2.5.3.tgz 991ms (cache miss)
+324 http fetch GET 200 https://registry.npmjs.org/ms/-/ms-2.1.3.tgz 977ms (cache miss)
+325 http fetch GET 200 https://registry.npmjs.org/bytes/-/bytes-3.1.2.tgz 985ms (cache miss)
+326 http fetch GET 200 https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz 997ms (cache miss)
+327 http fetch GET 200 https://registry.npmjs.org/mime-types/-/mime-types-2.1.35.tgz 1028ms (cache miss)
+328 http fetch GET 200 https://registry.npmjs.org/depd/-/depd-2.0.0.tgz 1047ms (cache miss)
+329 http fetch GET 200 https://registry.npmjs.org/serve-static/-/serve-static-1.16.3.tgz 1099ms (cache miss)
+330 http fetch GET 200 https://registry.npmjs.org/safer-buffer/-/safer-buffer-2.1.2.tgz 1162ms (cache miss)
+331 http fetch GET 200 https://registry.npmjs.org/debug/-/debug-4.4.3.tgz 1165ms (cache miss)
+332 http fetch GET 200 https://registry.npmjs.org/kareem/-/kareem-2.6.3.tgz 1194ms (cache miss)
+333 http fetch GET 200 https://registry.npmjs.org/mongodb-connection-string-url/-/mongodb-connection-string-url-3.0.2.tgz 1226ms (cache miss)
+334 http fetch GET 200 https://registry.npmjs.org/negotiator/-/negotiator-0.6.3.tgz 1232ms (cache miss)
+335 http fetch GET 200 https://registry.npmjs.org/send/-/send-0.19.2.tgz 1238ms (cache miss)
+336 http fetch GET 200 https://registry.npmjs.org/hasown/-/hasown-2.0.4.tgz 1267ms (cache miss)
+337 http fetch GET 200 https://registry.npmjs.org/@types/whatwg-url/-/whatwg-url-11.0.5.tgz 1290ms (cache miss)
+338 http fetch GET 200 https://registry.npmjs.org/side-channel-weakmap/-/side-channel-weakmap-1.0.2.tgz 1298ms (cache miss)
+339 http fetch GET 200 https://registry.npmjs.org/side-channel-map/-/side-channel-map-1.0.1.tgz 1297ms (cache miss)
+340 http fetch GET 200 https://registry.npmjs.org/side-channel/-/side-channel-1.1.1.tgz 1332ms (cache miss)
+341 http fetch GET 200 https://registry.npmjs.org/get-intrinsic/-/get-intrinsic-1.3.0.tgz 1324ms (cache miss)
+342 http fetch GET 200 https://registry.npmjs.org/call-bound/-/call-bound-1.0.4.tgz 1336ms (cache miss)
+343 http fetch GET 200 https://registry.npmjs.org/side-channel-list/-/side-channel-list-1.0.1.tgz 1351ms (cache miss)
+344 http fetch GET 200 https://registry.npmjs.org/gopd/-/gopd-1.2.0.tgz 1345ms (cache miss)
+345 http fetch GET 200 https://registry.npmjs.org/mime-db/-/mime-db-1.52.0.tgz 1370ms (cache miss)
+346 http fetch GET 200 https://registry.npmjs.org/express-rate-limit/-/express-rate-limit-7.5.1.tgz 1371ms (cache miss)
+347 http fetch GET 200 https://registry.npmjs.org/body-parser/-/body-parser-1.20.8.tgz 1374ms (cache miss)
+348 http fetch GET 200 https://registry.npmjs.org/mpath/-/mpath-0.9.0.tgz 1406ms (cache miss)
+349 http fetch GET 200 https://registry.npmjs.org/function-bind/-/function-bind-1.1.2.tgz 1434ms (cache miss)
+350 http fetch GET 200 https://registry.npmjs.org/mime/-/mime-1.6.0.tgz 1443ms (cache miss)
+351 http fetch GET 200 https://registry.npmjs.org/get-proto/-/get-proto-1.0.1.tgz 1475ms (cache miss)
+352 http fetch GET 200 https://registry.npmjs.org/tr46/-/tr46-5.1.1.tgz 1487ms (cache miss)
+353 http fetch GET 200 https://registry.npmjs.org/dunder-proto/-/dunder-proto-1.0.1.tgz 1482ms (cache miss)
+354 http fetch GET 200 https://registry.npmjs.org/has-symbols/-/has-symbols-1.1.0.tgz 1546ms (cache miss)
+355 http fetch GET 200 https://registry.npmjs.org/whatwg-url/-/whatwg-url-14.2.0.tgz 1596ms (cache miss)
+356 http fetch GET 200 https://registry.npmjs.org/debug/-/debug-2.6.9.tgz 1575ms (cache miss)
+357 http fetch GET 200 https://registry.npmjs.org/mquery/-/mquery-5.0.0.tgz 1607ms (cache miss)
+358 http fetch GET 200 https://registry.npmjs.org/call-bind-apply-helpers/-/call-bind-apply-helpers-1.0.2.tgz 1623ms (cache miss)
+359 http fetch GET 200 https://registry.npmjs.org/es-errors/-/es-errors-1.3.0.tgz 1642ms (cache miss)
+360 http fetch GET 200 https://registry.npmjs.org/express/-/express-4.22.3.tgz 1672ms (cache miss)
+361 http fetch GET 200 https://registry.npmjs.org/qs/-/qs-6.16.0.tgz 1784ms (cache miss)
+362 http fetch GET 200 https://registry.npmjs.org/sift/-/sift-17.1.3.tgz 1826ms (cache miss)
+363 http fetch GET 200 https://registry.npmjs.org/math-intrinsics/-/math-intrinsics-1.1.0.tgz 1903ms (cache miss)
+364 http fetch GET 200 https://registry.npmjs.org/object-inspect/-/object-inspect-1.13.4.tgz 1912ms (cache miss)
+365 http fetch GET 200 https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.4.24.tgz 1932ms (cache miss)
+366 http fetch GET 200 https://registry.npmjs.org/@mongodb-js/saslprep/-/saslprep-1.6.0.tgz 1996ms (cache miss)
+367 http fetch GET 200 https://registry.npmjs.org/bson/-/bson-6.10.4.tgz 2161ms (cache miss)
+368 http fetch GET 200 https://registry.npmjs.org/mongoose/-/mongoose-8.24.5.tgz 3505ms (cache miss)
+369 http fetch GET 200 https://registry.npmjs.org/mongodb/-/mongodb-6.20.0.tgz 3712ms (cache miss)
+370 silly CHANGE node_modules/@types/whatwg-url
+371 silly CHANGE node_modules/@mongodb-js/saslprep
+372 silly CHANGE node_modules/@types/webidl-conversions
+373 silly CHANGE node_modules/whatwg-url
+374 silly CHANGE node_modules/webidl-conversions
+375 silly CHANGE node_modules/utils-merge
+376 silly CHANGE node_modules/vary
+377 silly CHANGE node_modules/unpipe
+378 silly CHANGE node_modules/statuses
+379 silly CHANGE node_modules/type-is
+380 silly CHANGE node_modules/toidentifier
+381 silly CHANGE node_modules/tr46
+382 silly CHANGE node_modules/sparse-bitfield
+383 silly CHANGE node_modules/setprototypeof
+384 silly CHANGE node_modules/sift
+385 silly CHANGE node_modules/side-channel-weakmap
+386 silly CHANGE node_modules/side-channel-map
+387 silly CHANGE node_modules/side-channel-list
+388 silly CHANGE node_modules/side-channel
+389 silly CHANGE node_modules/serve-static
+390 silly CHANGE node_modules/safer-buffer
+391 silly CHANGE node_modules/send
+392 silly ADD node_modules/send/node_modules/ms
+393 silly CHANGE node_modules/safe-buffer
+394 silly CHANGE node_modules/range-parser
+395 silly CHANGE node_modules/raw-body
+396 silly CHANGE node_modules/qs
+397 silly CHANGE node_modules/proxy-addr
+398 silly CHANGE node_modules/path-to-regexp
+399 silly CHANGE node_modules/parseurl
+400 silly CHANGE node_modules/object-inspect
+401 silly CHANGE node_modules/on-finished
+402 silly CHANGE node_modules/negotiator
+403 silly CHANGE node_modules/mquery
+404 silly ADD node_modules/mquery/node_modules/ms
+405 silly ADD node_modules/mquery/node_modules/debug
+406 silly CHANGE node_modules/ms
+407 silly CHANGE node_modules/mpath
+408 silly CHANGE node_modules/mongoose
+409 silly ADD node_modules/mongoose/node_modules/ms
+410 silly CHANGE node_modules/mongodb-connection-string-url
+411 silly CHANGE node_modules/mongodb
+412 silly CHANGE node_modules/mime-types
+413 silly CHANGE node_modules/methods
+414 silly CHANGE node_modules/mime-db
+415 silly CHANGE node_modules/mime
+416 silly CHANGE node_modules/merge-descriptors
+417 silly CHANGE node_modules/iconv-lite
+418 silly CHANGE node_modules/memory-pager
+419 silly CHANGE node_modules/media-typer
+420 silly CHANGE node_modules/math-intrinsics
+421 silly CHANGE node_modules/kareem
+422 silly CHANGE node_modules/ipaddr.js
+423 silly CHANGE node_modules/get-intrinsic
+424 silly CHANGE node_modules/inherits
+425 silly CHANGE node_modules/http-errors
+426 silly CHANGE node_modules/hasown
+427 silly CHANGE node_modules/gopd
+428 silly CHANGE node_modules/has-symbols
+429 silly CHANGE node_modules/get-proto
+430 silly CHANGE node_modules/function-bind
+431 silly CHANGE node_modules/fresh
+432 silly CHANGE node_modules/finalhandler
+433 silly CHANGE node_modules/forwarded
+434 silly CHANGE node_modules/express-rate-limit
+435 silly CHANGE node_modules/express
+436 silly CHANGE node_modules/escape-html
+437 silly CHANGE node_modules/etag
+438 silly CHANGE node_modules/es-object-atoms
+439 silly CHANGE node_modules/es-define-property
+440 silly CHANGE node_modules/encodeurl
+441 silly CHANGE node_modules/es-errors
+442 silly CHANGE node_modules/ee-first
+443 silly CHANGE node_modules/destroy
+444 silly CHANGE node_modules/dunder-proto
+445 silly CHANGE node_modules/depd
+446 silly CHANGE node_modules/cookie-signature
+447 silly CHANGE node_modules/cors
+448 silly CHANGE node_modules/content-type
+449 silly CHANGE node_modules/debug
+450 silly CHANGE node_modules/cookie
+451 silly CHANGE node_modules/content-disposition
+452 silly CHANGE node_modules/call-bound
+453 silly CHANGE node_modules/call-bind-apply-helpers
+454 silly CHANGE node_modules/body-parser
+455 silly CHANGE node_modules/bytes
+456 silly CHANGE node_modules/bson
+457 silly CHANGE node_modules/accepts
+458 silly CHANGE node_modules/array-flatten
+459 verbose cwd C:\Users\USER\Downloads\design-to-tailwind-ai\design-to-tailwind-ai\backend
+460 verbose os Windows_NT 10.0.26200
+461 verbose node v22.19.0
+462 verbose npm  v10.9.3
+463 verbose exit 0
+464 info ok
