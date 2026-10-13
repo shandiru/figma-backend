@@ -10,6 +10,13 @@ const Generation = require('./models/Generation');
 const app = express();
 app.set('trust proxy', 1);
 const memoryLogs = global._generationMemoryLogs || (global._generationMemoryLogs = []);
+const upsertMemoryLog = (entry) => {
+  const i = memoryLogs.findIndex((x) => x._id === entry._id);
+  if (i >= 0) memoryLogs[i] = { ...memoryLogs[i], ...entry };
+  else memoryLogs.unshift(entry);
+  memoryLogs.splice(50);
+  return entry;
+};
 
 // Figma plugin iframes send Origin: null, so we can't whitelist by origin.
 // Protection = x-plugin-key header + rate limits.
@@ -25,10 +32,20 @@ function auth(req, res, next) {
 }
 
 // Safe DB log: never breaks a response and never waits more than 1.5s (e.g. when Atlas IP access is not allowed yet)
-async function log(doc) {
-  const entry = { ...doc, createdAt: new Date(), _id: 'mem-' + Date.now() + '-' + Math.random().toString(16).slice(2) };
-  memoryLogs.unshift(entry);
-  memoryLogs.splice(50);
+function startLog(doc) {
+  return upsertMemoryLog({
+    ...doc,
+    ok: null,
+    status: 'processing',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    _id: 'mem-' + Date.now() + '-' + Math.random().toString(16).slice(2)
+  });
+}
+
+async function finishLog(entry, doc) {
+  const finalDoc = { ...entry, ...doc, ok: doc.ok === false ? false : true, status: doc.ok === false ? 'error' : 'done', updatedAt: new Date() };
+  upsertMemoryLog(finalDoc);
   const work = (async () => { if (await connect()) await Generation.create(doc); })().catch((e) => console.error('DB log failed:', e.message));
   await Promise.race([work, new Promise((r) => setTimeout(r, 1500))]);
 }
@@ -69,24 +86,29 @@ function codePreview(x) {
   return `<details><summary>View generated code (${esc(code.length)} chars)</summary><pre>${esc(preview)}</pre></details>`;
 }
 
+function statusTag(x) {
+  if (x.status === 'processing' || x.ok === null) return '<span class="tag warn">processing</span>';
+  if (x.ok === false || x.status === 'error') return '<span class="tag bad">error</span>';
+  return '<span class="tag good">done</span>';
+}
+
 app.get('/', async (req, res) => {
-  const hasKey = !cfg.PLUGIN_KEY || req.query.key === cfg.PLUGIN_KEY;
   let info = { ok: true, geminiKey: false, models: [], db: 'checking' };
   let items = [];
   let error = '';
 
   try {
     info = await status();
-    if (hasKey) items = await recentLogs(parseInt(req.query.limit, 10) || 25);
+    items = await recentLogs(parseInt(req.query.limit, 10) || 25);
   } catch (e) {
     error = e.message;
   }
 
-  const logsHtml = hasKey
-    ? (items.length
+  const logsHtml = items.length
         ? items.map((x) => `<tr>
             <td>${esc(new Date(x.createdAt).toLocaleString('en-US', { timeZone: 'Asia/Colombo' }))}</td>
-            <td><span class="tag ${x.ok === false ? 'bad' : 'good'}">${esc(x.kind)}</span></td>
+            <td>${statusTag(x)}</td>
+            <td><span class="tag">${esc(x.kind)}</span></td>
             <td>${esc(x.format || '-')}</td>
             <td>${esc(x.model || '-')}</td>
             <td>${esc(x.ms || 0)} ms</td>
@@ -94,8 +116,7 @@ app.get('/', async (req, res) => {
             <td>${esc(x.error || x.instructions || '-')}</td>
             <td>${codePreview(x)}</td>
           </tr>`).join('')
-        : '<tr><td colspan="8">No logs yet.</td></tr>')
-    : '<tr><td colspan="8">Add <code>?key=YOUR_PLUGIN_KEY</code> to this URL to view backend logs and generated code.</td></tr>';
+        : '<tr><td colspan="9">No logs yet. Figma plugin-la Generate or Enhance AI click pannunga.</td></tr>';
 
   res.type('html').send(`<!doctype html>
 <html lang="en">
@@ -103,8 +124,9 @@ app.get('/', async (req, res) => {
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Design to Tailwind Backend</title>
+  <meta http-equiv="refresh" content="4">
   <style>
-    :root { color-scheme: dark; --bg:#08090b; --panel:#111418; --line:#29313a; --text:#f6f7f8; --muted:#9aa4af; --good:#25c26e; --bad:#ff5c5c; --brand:#ffd15a; }
+    :root { color-scheme: dark; --bg:#08090b; --panel:#111418; --line:#29313a; --text:#f6f7f8; --muted:#9aa4af; --good:#25c26e; --bad:#ff5c5c; --warn:#ffd15a; --brand:#ffd15a; }
     body { margin:0; font:14px/1.5 Inter,system-ui,Segoe UI,sans-serif; background:var(--bg); color:var(--text); }
     main { max-width:1120px; margin:0 auto; padding:32px 18px; }
     h1 { margin:0 0 4px; font-size:26px; }
@@ -113,7 +135,7 @@ app.get('/', async (req, res) => {
     .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; }
     .label { color:var(--muted); font-size:12px; }
     .value { font-size:17px; font-weight:700; margin-top:4px; overflow-wrap:anywhere; }
-    .good { color:var(--good); } .bad { color:var(--bad); }
+    .good { color:var(--good); } .bad { color:var(--bad); } .warn { color:var(--warn); }
     table { width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
     th,td { padding:10px 12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
     th { color:var(--muted); font-size:12px; font-weight:600; }
@@ -122,7 +144,7 @@ app.get('/', async (req, res) => {
     details { min-width:260px; }
     summary { cursor:pointer; color:var(--brand); font-weight:700; }
     pre { max-width:520px; max-height:360px; overflow:auto; margin:8px 0 0; padding:12px; border:1px solid var(--line); border-radius:8px; background:#050607; color:#d8dee6; font:12px/1.5 Consolas,monospace; white-space:pre-wrap; overflow-wrap:anywhere; }
-    .tag.good { border-color:rgba(37,194,110,.35); } .tag.bad { border-color:rgba(255,92,92,.35); }
+    .tag.good { border-color:rgba(37,194,110,.35); } .tag.bad { border-color:rgba(255,92,92,.35); } .tag.warn { border-color:rgba(255,209,90,.35); }
     .error { margin:16px 0; color:var(--bad); white-space:pre-wrap; }
     @media (max-width:760px) { .grid { grid-template-columns:1fr 1fr; } table { display:block; overflow:auto; } }
   </style>
@@ -130,7 +152,7 @@ app.get('/', async (req, res) => {
 <body>
   <main>
     <h1>Design to Tailwind Backend</h1>
-    <div class="muted">Root dashboard for Vercel backend status and recent generation logs.</div>
+    <div class="muted">Figma plugin Generate / Enhance AI process logs. Page auto-refreshes every 4 seconds.</div>
     ${error ? `<div class="error">${esc(error)}</div>` : ''}
     <section class="grid">
       <div class="card"><div class="label">API</div><div class="value good">online</div></div>
@@ -140,7 +162,7 @@ app.get('/', async (req, res) => {
     </section>
     <h2>Recent Logs</h2>
     <table>
-      <thead><tr><th>Time</th><th>Kind</th><th>Format</th><th>Model</th><th>Duration</th><th>Chars</th><th>Note / Error</th><th>Code</th></tr></thead>
+      <thead><tr><th>Time</th><th>Status</th><th>Kind</th><th>Format</th><th>Model</th><th>Duration</th><th>Chars</th><th>Note / Error</th><th>Code</th></tr></thead>
       <tbody>${logsHtml}</tbody>
     </table>
   </main>
@@ -157,8 +179,9 @@ app.post('/api/fix', auth, async (req, res) => {
   const { html } = req.body || {};
   if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'html is required' });
   const t = Date.now();
+  const event = startLog({ kind: 'fix', format: 'html', inputChars: html.length });
   const out = fixHtml(html);
-  await log({ kind: 'fix', inputChars: html.length, outputChars: out.html.length, changes: out.stats.total, ms: Date.now() - t, output: out.html });
+  await finishLog(event, { kind: 'fix', format: 'html', inputChars: html.length, outputChars: out.html.length, changes: out.stats.total, ms: Date.now() - t, output: out.html });
   res.json({ html: out.html, stats: out.stats });
 });
 
@@ -177,13 +200,14 @@ app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'
 
   const started = Date.now();
   const note = String(instructions).slice(0, 1000);
+  const event = startLog({ kind: 'ai', format, instructions: note, inputChars: html.length, model: modelList()[0] || 'gemini' });
   try {
     const out = await refine({ html, format, instructions: note, screenshot, width });
     const ms = Date.now() - started;
-    await log({ kind: 'ai', format, model: out.model, instructions: note, inputChars: html.length, outputChars: out.code.length, ms, output: out.code });
+    await finishLog(event, { kind: 'ai', format, model: out.model, instructions: note, inputChars: html.length, outputChars: out.code.length, ms, output: out.code });
     res.json({ code: out.code, model: out.model, ms, truncated: out.truncated });
   } catch (e) {
-    await log({ kind: 'ai', format, instructions: note, inputChars: html.length, ms: Date.now() - started, ok: false, error: e.message });
+    await finishLog(event, { kind: 'ai', format, instructions: note, inputChars: html.length, ms: Date.now() - started, ok: false, error: e.message });
     res.status(e.status || 500).json({ error: e.message });
   }
 });
