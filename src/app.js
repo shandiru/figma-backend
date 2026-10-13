@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const cfg = require('./config');
-const { refine, modelList } = require('./gemini');
+const { refine, modelList, hasGeminiKey, validGeminiKeyShape } = require('./gemini');
 const { fixHtml } = require('./fixer');
 const { connect, enabled: dbEnabled } = require('./db');
 const Generation = require('./models/Generation');
@@ -63,7 +63,7 @@ async function status() {
       ]);
     } catch (e) { db = 'error: ' + e.message; }
   }
-  return { ok: true, geminiKey: !!cfg.GEMINI_API_KEY && !cfg.GEMINI_API_KEY.startsWith('PASTE_'), models: modelList(), db };
+  return { ok: true, geminiKey: hasGeminiKey(), geminiKeyValid: validGeminiKeyShape(), models: modelList(), db };
 }
 
 async function recentLogs(limit = 25, includeOutput = true) {
@@ -93,7 +93,7 @@ function statusTag(x) {
 }
 
 app.get('/', async (req, res) => {
-  let info = { ok: true, geminiKey: false, models: [], db: 'checking' };
+  let info = { ok: true, geminiKey: false, geminiKeyValid: false, models: [], db: 'checking' };
   let items = [];
   let error = '';
 
@@ -156,7 +156,7 @@ app.get('/', async (req, res) => {
     ${error ? `<div class="error">${esc(error)}</div>` : ''}
     <section class="grid">
       <div class="card"><div class="label">API</div><div class="value good">online</div></div>
-      <div class="card"><div class="label">Gemini key</div><div class="value ${info.geminiKey ? 'good' : 'bad'}">${info.geminiKey ? 'set' : 'missing'}</div></div>
+      <div class="card"><div class="label">Gemini key</div><div class="value ${info.geminiKeyValid ? 'good' : 'bad'}">${info.geminiKeyValid ? 'set' : (info.geminiKey ? 'invalid' : 'missing')}</div></div>
       <div class="card"><div class="label">MongoDB</div><div class="value ${info.db === 'connected' ? 'good' : 'bad'}">${esc(info.db)}</div></div>
       <div class="card"><div class="label">Models</div><div class="value">${esc(info.models.join(', ') || '-')}</div></div>
     </section>

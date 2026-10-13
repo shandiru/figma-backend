@@ -47,8 +47,17 @@ async function callModel(model, parts, signal) {
 const stripFences = (s) =>
   s.trim().replace(/^```[a-zA-Z]*\s*\n/, '').replace(/\n?```\s*$/, '').trim();
 
+function hasGeminiKey() {
+  return !!cfg.GEMINI_API_KEY && !cfg.GEMINI_API_KEY.startsWith('PASTE_');
+}
+
+function validGeminiKeyShape() {
+  return hasGeminiKey() && /^AIza[0-9A-Za-z_-]{20,}$/.test(cfg.GEMINI_API_KEY);
+}
+
 async function refine({ html, format, instructions, screenshot, width }) {
-  if (!cfg.GEMINI_API_KEY || cfg.GEMINI_API_KEY.startsWith('PASTE_')) throw httpError(500, 'Gemini key not set. Paste it in backend/src/config.js (GEMINI_API_KEY).');
+  if (!hasGeminiKey()) throw httpError(500, 'Gemini key not set. Paste a valid Google AI Studio API key in backend/src/config.js (GEMINI_API_KEY) or set GEMINI_API_KEY in Vercel.');
+  if (!validGeminiKeyShape()) throw httpError(401, 'Gemini API key is invalid. Use a Google AI Studio key that starts with AIza...');
 
   const parts = [];
   if (screenshot) parts.push({ inlineData: { mimeType: 'image/jpeg', data: screenshot } });
@@ -64,6 +73,9 @@ async function refine({ html, format, instructions, screenshot, width }) {
       return { code: stripFences(out.text), model, truncated: out.truncated };
     } catch (e) {
       lastErr = e.name === 'TimeoutError' ? httpError(504, 'Gemini timed out') : e;
+      if (lastErr.status === 401 || lastErr.status === 403) {
+        throw httpError(lastErr.status, 'Gemini authentication failed. Check GEMINI_API_KEY in backend/src/config.js or Vercel env; use a Google AI Studio API key.');
+      }
       if (!RETRY_STATUS.includes(lastErr.status)) throw lastErr;
     }
   }
@@ -71,4 +83,4 @@ async function refine({ html, format, instructions, screenshot, width }) {
   throw httpError(status, lastErr ? `All Gemini models failed: ${lastErr.message}` : 'No time left to call Gemini');
 }
 
-module.exports = { refine, modelList };
+module.exports = { refine, modelList, hasGeminiKey, validGeminiKeyShape };

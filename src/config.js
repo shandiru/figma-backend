@@ -4,7 +4,7 @@ const pick = (name, fallback) => process.env[name] || fallback;
 
 module.exports = {
   // Gemini key (only used by the optional "Enhance with AI" button)
-  GEMINI_API_KEY: pick('GEMINI_API_KEY', 'AQ.Ab8RN6KcL1ANmHaf7ANz2OB9W_tgbl1pwEH1d1v8_oMGODYcfQ'),
+  GEMINI_API_KEY: pick('GEMINI_API_KEY', 'PASTE_GEMINI_API_KEY_HERE'),
   GEMINI_MODEL: pick('GEMINI_MODEL', 'gemini-flash-latest'),
   GEMINI_FALLBACK_MODELS: pick('GEMINI_FALLBACK_MODELS', 'gemini-flash-lite-latest'),
   GEMINI_BASE_URL: pick('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/models'),
