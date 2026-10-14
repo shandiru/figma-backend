@@ -57,12 +57,7 @@ function fixClassList(list, stats) {
     seen.add(n);
     out.push(n);
   }
-  // drop "md:gap-4" when base "gap-4" is identical (no-op responsive variant)
-  return out.filter((t) => {
-    const m = t.match(/^(?:sm|md|lg|xl|2xl):(.+)$/);
-    if (m && seen.has(m[1])) { stats.redundantVariants++; return false; }
-    return true;
-  });
+  return out;
 }
 
 function fixHtml(html) {
