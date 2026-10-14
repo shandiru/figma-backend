@@ -55,13 +55,13 @@ function validGeminiKeyShape() {
   return hasGeminiKey() && /^AIza[0-9A-Za-z_-]{20,}$/.test(cfg.GEMINI_API_KEY);
 }
 
-async function refine({ html, format, instructions, screenshot, width }) {
+async function refine({ html, format, instructions, screenshot, width, height }) {
   if (!hasGeminiKey()) throw httpError(500, 'Gemini key not set. Paste a valid Google AI Studio API key in backend/src/config.js (GEMINI_API_KEY) or set GEMINI_API_KEY in Vercel.');
   if (!validGeminiKeyShape()) throw httpError(401, 'Gemini API key is invalid. Use a Google AI Studio key that starts with AIza...');
 
   const parts = [];
   if (screenshot) parts.push({ inlineData: { mimeType: 'image/jpeg', data: screenshot } });
-  parts.push({ text: buildUserText({ html, format, instructions, width }) });
+  parts.push({ text: buildUserText({ html, format, instructions, width, height }) });
 
   const deadline = Date.now() + TOTAL_BUDGET_MS;
   let lastErr;

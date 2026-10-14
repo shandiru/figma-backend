@@ -187,7 +187,7 @@ app.post('/api/fix', auth, async (req, res) => {
 
 // ---- optional path: Gemini refine ----
 app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'), async (req, res) => {
-  const { html, format = 'html', instructions = '', width } = req.body || {};
+  const { html, format = 'html', instructions = '', width, height } = req.body || {};
   let { screenshot } = req.body || {};
 
   if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'html is required' });
@@ -195,14 +195,14 @@ app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'
   if (!['html', 'react'].includes(format)) return res.status(400).json({ error: 'format must be html or react' });
   if (typeof screenshot === 'string') {
     screenshot = screenshot.replace(/^data:image\/\w+;base64,/, '');
-    if (screenshot.length > 3500000) screenshot = '';
+    if (screenshot.length > 4500000) screenshot = '';
   } else screenshot = '';
 
   const started = Date.now();
   const note = String(instructions).slice(0, 1000);
   const event = startLog({ kind: 'ai', format, instructions: note, inputChars: html.length, model: modelList()[0] || 'gemini' });
   try {
-    const out = await refine({ html, format, instructions: note, screenshot, width });
+    const out = await refine({ html, format, instructions: note, screenshot, width, height });
     const ms = Date.now() - started;
     await finishLog(event, { kind: 'ai', format, model: out.model, instructions: note, inputChars: html.length, outputChars: out.code.length, ms, output: out.code });
     res.json({ code: out.code, model: out.model, ms, truncated: out.truncated });
