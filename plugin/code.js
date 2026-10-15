@@ -30,17 +30,20 @@ const sp = (pre, v) => { v = r(v); return SP[v] !== undefined ? `${pre}-${SP[v]}
 // responsive value: mobile-first, then sm/md/lg/xl/2xl progressively restores desktop scale
 const BPS = ['', 'sm', 'md', 'lg', 'xl', '2xl'];
 const bp = (name, cls) => name ? `${name}:${cls}` : cls;
+function responsiveVariants(values) {
+  return values.flatMap((value, i) => i && value === values[i - 1] ? [] : [bp(BPS[i], value)]);
+}
 const rsp = (pre, v, opts, cfg) => {
   const o = Object.assign({ thr: 24, min: 0, factors: [0.5, 0.65, 0.78, 0.9, 1, 1] }, cfg || {});
   if (!opts.responsive || v < o.thr) return [sp(pre, v)];
-  return BPS.map((name, i) => bp(name, sp(pre, Math.max(o.min, Math.round(v * o.factors[i])))));
+  return responsiveVariants(BPS.map((_, i) => sp(pre, Math.max(o.min, Math.round(v * o.factors[i])))));
 };
 const rspText = (fs, opts) => {
   if (!opts.responsive || fs < 28) return [`text-[${r(fs)}px]`];
   const factors = fs >= 40 ? [0.55, 0.65, 0.78, 0.9, 1, 1] : [0.75, 0.82, 0.9, 0.96, 1, 1];
-  return BPS.map((name, i) => bp(name, `text-[${r(fs * factors[i])}px]`));
+  return responsiveVariants(factors.map((factor) => `text-[${r(fs * factor)}px]`));
 };
-const rspSwitch = (smallCls, largeCls) => BPS.map((name, i) => bp(name, i < 3 ? smallCls : largeCls));
+const rspSwitch = (smallCls, largeCls) => responsiveVariants(BPS.map((_, i) => i < 3 ? smallCls : largeCls));
 const WNAME = { 100: 'thin', 200: 'extralight', 300: 'light', 400: 'normal', 500: 'medium', 600: 'semibold', 700: 'bold', 800: 'extrabold', 900: 'black' };
 const slug = (f) => 'font-' + f.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
@@ -279,7 +282,10 @@ function segStyle(seg, n, opts, ctx, force) {
   c.push(slug(fam)); if (seg.fontWeight !== 400 || force) c.push(WNAME[seg.fontWeight] ? `font-${WNAME[seg.fontWeight]}` : `font-[${seg.fontWeight}]`);
   if (/italic/i.test(seg.fontName.style)) c.push('italic');
   const lh = seg.lineHeight;
-  if (lh && lh.unit === 'PIXELS') c.push(`leading-[${r(lh.value)}px]`);
+  if (lh && lh.unit === 'PIXELS') {
+    const factors = !opts.responsive || fs < 28 ? [1] : fs >= 40 ? [0.55, 0.65, 0.78, 0.9, 1, 1] : [0.75, 0.82, 0.9, 0.96, 1, 1];
+    c.push(...responsiveVariants(factors.map((factor) => `leading-[${r(lh.value * factor)}px]`)));
+  }
   else if (lh && lh.unit === 'PERCENT') c.push(`leading-[${r(lh.value)}%]`);
   const ls = seg.letterSpacing;
   if (ls && ls.value) c.push(ls.unit === 'PIXELS' ? `tracking-[${r(ls.value)}px]` : `tracking-[${r(ls.value / 100)}em]`);
@@ -316,7 +322,8 @@ async function textHtml(n, parent, opts, ctx, ind, isRoot) {
   if (n.textAlignHorizontal === 'CENTER') c.push('text-center');
   else if (n.textAlignHorizontal === 'RIGHT') c.push('text-right');
   else if (n.textAlignHorizontal === 'JUSTIFIED') c.push('text-justify');
-  if (n.textAutoResize === 'WIDTH_AND_HEIGHT' && c.indexOf('whitespace-nowrap') < 0) c.push('whitespace-nowrap');
+  if (opts.responsive) c.push('min-w-0', 'max-w-full', 'break-words');
+  else if (n.textAutoResize === 'WIDTH_AND_HEIGHT' && c.indexOf('whitespace-nowrap') < 0) c.push('whitespace-nowrap');
   if (n.textTruncation === 'ENDING') c.push(n.maxLines ? `line-clamp-${n.maxLines}` : 'truncate');
   effects(n, c, style);
   let inner;
@@ -341,7 +348,27 @@ function hasVector(n) {
   if (VECTORS.includes(n.type)) return true;
   return n.children ? n.children.some(hasVector) : false;
 }
-const isIcon = (n) => n.children && n.children.length && n.width <= 160 && n.height <= 160 && pureShapes(n) && hasVector(n);
+const isIcon = (n) => n.children && n.children.length && ((n.width <= 160 && n.height <= 160) || /\b(logo|wordmark|brandmark)\b/i.test(n.name || '')) && pureShapes(n) && hasVector(n);
+
+function namespaceSvg(svg, prefix, overrides = {}) {
+  const ids = new Map();
+  svg.replace(/\bid\s*=\s*(["'])([^"']+)\1/g, (_, quote, id) => { ids.set(id, overrides[id] || prefix + id); return _; });
+  return svg
+    .replace(/\bid\s*=\s*(["'])([^"']+)\1/g, (match, quote, id) => `id=${quote}${ids.get(id)}${quote}`)
+    .replace(/url\(\s*(["']?)#([^\s)'"(]+)\1\s*\)/g, (match, quote, id) => ids.has(id) ? `url(${quote}#${ids.get(id)}${quote})` : match)
+    .replace(/\b((?:xlink:)?href)\s*=\s*(["'])#([^"']+)\2/g, (match, attr, quote, id) => ids.has(id) ? `${attr}=${quote}#${ids.get(id)}${quote}` : match);
+}
+
+function spriteSymbol(svg, id) {
+  const root = svg.match(/^\s*<svg\b([^>]*)>/);
+  const rootId = root && root[1].match(/\bid\s*=\s*(["'])([^"']+)\1/);
+  const scoped = namespaceSvg(svg, id + '-', rootId ? { [rootId[2]]: id } : {});
+  const match = scoped.match(/^\s*<svg\b([^>]*)>([\s\S]*)<\/svg>\s*$/);
+  if (!match) return null;
+  // Paint and opacity on the original SVG root must inherit into every path.
+  const attributes = match[1].replace(/\s+(?:id|width|height|xmlns(?::[\w-]+)?)\s*=\s*(["'])[^"']*\1/g, '');
+  return `<symbol id="${id}"${attributes}>${match[2]}</symbol>`;
+}
 
 async function svgHtml(n, parent, opts, ind, isRoot, ctx) {
   const vis = (a) => visible(a).length > 0;
@@ -356,13 +383,14 @@ async function svgHtml(n, parent, opts, ind, isRoot, ctx) {
   c.push('shrink-0');
   const o = []; effects(n, c, o);
   let inner;
-  const m = svg.match(/^<svg[^>]*viewBox="([^"]+)"[^>]*>([\s\S]*)<\/svg>\s*$/);
-  if (m) {
-    const key = m[1] + '|' + m[2];
-    let id = ctx.syms[key];
-    if (!id) { id = 'i' + (++ctx.symN); ctx.syms[key] = id; ctx.symDefs.push(`<symbol id="${id}" viewBox="${m[1]}">${m[2]}</symbol>`); }
-    inner = `<svg class="block w-full h-full"><use href="#${id}"/></svg>`;
-  } else inner = svg.replace('<svg ', '<svg class="block w-full h-full" ');
+  let id = ctx.syms[svg];
+  if (!id) {
+    const candidate = 'i' + (ctx.symN + 1);
+    const symbol = spriteSymbol(svg, candidate);
+    if (symbol) { id = candidate; ctx.symN++; ctx.syms[svg] = id; ctx.symDefs.push(symbol); }
+  }
+  if (id) inner = `<svg class="block w-full h-full" aria-hidden="true" focusable="false"><use href="#${id}"/></svg>`;
+  else inner = namespaceSvg(svg, 'inline-' + (++ctx.symN) + '-').replace('<svg ', '<svg class="block w-full h-full" ');
   return `${ind}<div class="${c.join(' ')}">${inner}</div>`;
 }
 
@@ -418,6 +446,7 @@ async function renderNode(n, parent, opts, depth, ctx) {
 }
 
 const say = (msg) => figma.ui.postMessage({ type: 'progress', msg });
+let lastGeneratedSelection = [];
 
 async function generate(opts) {
   const sel = [...figma.currentPage.selection].sort((a, b) => a.width - b.width);
@@ -454,6 +483,7 @@ async function generate(opts) {
     const maskCss = Object.keys(ctx.maskKey).map((id) => `.${ctx.maskCls[id]}{background-image:url(__IMG_${ctx.maskKey[id]}__)}`);
     const fontCss = Object.keys(fonts).map((f) => `.${slug(f)}{font-family:"${cssEsc(f)}",${/mono|code|courier/i.test(f) ? 'monospace' : (/serif|playfair|merriweather|lora|georgia|times|garamond|cormorant|bodoni/i.test(f) && !/sans/i.test(f)) ? 'serif' : 'sans-serif'}}`);
     if (imageCss.length || maskCss.length || fontCss.length) head += '<style>' + imageCss.concat(maskCss, fontCss).join('') + '</style>\n';
+    lastGeneratedSelection = sel.slice();
     figma.ui.postMessage({ type: 'result', html: head + desktop.html, fonts, images, sizes, width: desktop.width, height: desktop.height, responsive: !!opts.responsive, references: multi ? references : [] });
   } catch (e) {
     figma.ui.postMessage({ type: 'error', msg: String(e && e.stack ? e.stack : e) });
@@ -486,4 +516,17 @@ figma.ui.onmessage = (m) => {
   }
 
   if (m.type === 'debug') figma.ui.postMessage({ type: 'debug', json: JSON.stringify(figma.currentPage.selection.map((n) => dump(n, 0, false))) });
+  if (m.type === 'ai-screenshots') captureAiScreenshots();
 };
+
+async function captureAiScreenshots() {
+  try {
+    if (!lastGeneratedSelection.length) throw new Error('Generate a design first.');
+    const screenshots = await Promise.all(lastGeneratedSelection.map(async (node) => {
+      if (node.removed) throw new Error('A generated frame was removed. Generate again.');
+      const bytes = await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: Math.max(0.1, Math.min(1, 1440 / node.width, 2400 / node.height)) } });
+      return { width: Math.round(node.width), height: Math.round(node.height), bytes };
+    }));
+    figma.ui.postMessage({ type: 'ai-screenshots', screenshots });
+  } catch (error) { figma.ui.postMessage({ type: 'ai-screenshots', error: error.message || String(error) }); }
+}

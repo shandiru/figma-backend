@@ -4,6 +4,7 @@ const rateLimit = require('express-rate-limit');
 const cfg = require('./config');
 const { refine, modelList, hasGeminiKey, validGeminiKeyShape } = require('./gemini');
 const { fixHtml } = require('./fixer');
+const { parseReferences } = require('./references');
 const { connect, enabled: dbEnabled } = require('./db');
 const Generation = require('./models/Generation');
 
@@ -21,7 +22,7 @@ const upsertMemoryLog = (entry) => {
 // Figma plugin iframes send Origin: null, so we can't whitelist by origin.
 // Protection = x-plugin-key header + rate limits.
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type', 'x-plugin-key'], maxAge: 86400 }));
-app.use(express.json({ limit: '4mb' }));
+app.use(express.json({ limit: '8mb' }));
 const limiter = (limit, msg) => rateLimit({ windowMs: 60 * 1000, limit, standardHeaders: true, legacyHeaders: false, message: { error: msg } });
 app.use(limiter(60, 'Too many requests. Wait a minute and try again.'));
 
@@ -187,12 +188,16 @@ app.post('/api/fix', auth, async (req, res) => {
 
 // ---- optional path: Gemini refine ----
 app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'), async (req, res) => {
-  const { html, format = 'html', instructions = '', width, height } = req.body || {};
+  const { html, format = 'html', instructions = '', width, height, responsive = true } = req.body || {};
   let { screenshot } = req.body || {};
+  let references;
+  try { references = parseReferences(req.body && req.body.references); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
 
   if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'html is required' });
-  if (html.length > 350000) return res.status(413).json({ error: 'Design is too large for AI refine. Select a smaller frame (a section) and try again.' });
+  if (html.length + references.reduce((size, ref) => size + ref.html.length, 0) > 350000) return res.status(413).json({ error: 'Design is too large for AI refine. Select smaller matching sections.' });
   if (!['html', 'react'].includes(format)) return res.status(400).json({ error: 'format must be html or react' });
+  if (typeof responsive !== 'boolean' || (references.length && !responsive)) return res.status(400).json({ error: 'Multiple viewport references require responsive mode.' });
   if (typeof screenshot === 'string') {
     screenshot = screenshot.replace(/^data:image\/\w+;base64,/, '');
     if (screenshot.length > 4500000) screenshot = '';
@@ -202,7 +207,8 @@ app.post('/api/refine', auth, limiter(8, 'AI limit reached (8/min). Wait a bit.'
   const note = String(instructions).slice(0, 1000);
   const event = startLog({ kind: 'ai', format, instructions: note, inputChars: html.length, model: modelList()[0] || 'gemini' });
   try {
-    const out = await refine({ html, format, instructions: note, screenshot, width, height });
+    const desktop = references[references.length - 1];
+    const out = await refine({ html, format, instructions: note, screenshot, width: desktop ? desktop.width : width, height: desktop ? desktop.height : height, references, responsive });
     const ms = Date.now() - started;
     await finishLog(event, { kind: 'ai', format, model: out.model, instructions: note, inputChars: html.length, outputChars: out.code.length, ms, output: out.code });
     res.json({ code: out.code, model: out.model, ms, truncated: out.truncated });
@@ -233,7 +239,7 @@ app.get('/api/logs', auth, async (req, res) => {
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
-  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Request too large (max 4 MB). Select a smaller frame.' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Request too large (max 8 MB). Select smaller matching sections.' });
   console.error(err);
   res.status(err.status || 500).json({ error: err.message || 'Server error' });
 });

@@ -120,7 +120,17 @@
     <span class="aitag">Local</span>
     <span>HTML + Tailwind</span>
     <span>Mobile + desktop → one responsive layout. No API key.</span>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="undoai" disabled>Restore local code</button>
+    <button class="btn primary" id="ai" disabled>Enhance with AI</button>
   </div>
+  <details class="aibar">
+    <summary>Optional AI settings</summary>
+    <label for="apiurl">Backend URL</label><input class="inp grow" id="apiurl" value="https://figma-backend-xi.vercel.app" type="url">
+    <label for="pluginkey">Backend access key</label><input class="inp" id="pluginkey" type="password" autocomplete="off" placeholder="Your backend PLUGIN_KEY">
+    <label for="instructions">Cleanup instructions</label><input class="inp grow" id="instructions" maxlength="500" placeholder="e.g. simplify wrappers and improve tablet layout">
+    <span>Set GEMINI_API_KEY in your server environment. Never enter it here.</span>
+  </details>
   <div id="err"></div>
 
   <div class="tabs">
@@ -164,6 +174,7 @@
   let html = '', fonts = {}, devW = 1280;
   let skeleton = '', sprite = '', imgUrls = {}, frameW = 0, frameH = 0;
   let references = [], mergePending = false;
+  let localSkeleton = '', generationReady = false, generatedResponsive = true, pendingScreenshots = null;
   const SPRITE_RE = /<svg width="0" height="0"[^>]*>[\s\S]*?<\/defs><\/svg>\n?/;
   const codeView = () => fullPage();
 
@@ -186,7 +197,7 @@
   }
   let tt;
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1600); }
-  function setLoading(on, label) { document.body.classList.toggle('loading', on); $('gen').disabled = on; $('genlabel').textContent = on ? (label || 'Generating...') : 'Generate'; }
+  function setLoading(on, label) { document.body.classList.toggle('loading', on); $('gen').disabled = on; $('ai').disabled = on || !generationReady; $('undoai').disabled = on || !localSkeleton || skeleton === localSkeleton; $('genlabel').textContent = on ? (label || 'Generating...') : 'Generate'; }
   function showErr(m) { const e = $('err'); e.style.display = m ? 'block' : 'none'; e.textContent = m || ''; }
   // preview: always real device width la render panni, fit aaga scale pannum
   function layoutPreview() {
@@ -214,6 +225,7 @@
   });
 
   $('gen').onclick = () => {
+    generationReady = false;
     showErr(''); setLoading(true, 'Starting...');
     $('copy').disabled = true; $('copyfull').disabled = true;
     parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: $('rsp').checked && !$('exact').checked, images: $('img').checked, exact: $('exact').checked } } }, '*');
@@ -411,6 +423,10 @@
       $('sel').textContent = m.count === 0 ? 'No frame selected' : m.count === 1 ? m.names[0] : m.count + ' layers selected';
     }
     if (m.type === 'debug') { copy(m.json); toast('Layout debug copied (' + Math.round(m.json.length / 1024) + ' KB)'); }
+    if (m.type === 'ai-screenshots' && pendingScreenshots) {
+      const pending = pendingScreenshots; pendingScreenshots = null;
+      if (m.error) pending.reject(new Error(m.error)); else pending.resolve(m.screenshots || []);
+    }
     if (m.type === 'progress') setLoading(true, m.msg);
     if (m.type === 'error') { setLoading(false); showErr(m.msg); }
     if (m.type === 'result') {
@@ -419,10 +435,12 @@
       const packed = await packImages(m.html, m.images, m.sizes);
       html = packed.str; imgUrls = packed.urls; fonts = m.fonts || {};
       references = m.references || [];
+      generatedResponsive = m.responsive !== false;
       mergePending = references.length > 1;
       // Keep assets as tokens while combining viewport layouts.
       skeleton = m.html; const sm = skeleton.match(SPRITE_RE);
       sprite = sm ? sm[0] : ''; if (sm) skeleton = skeleton.replace(SPRITE_RE, () => '<!--SPRITE-->\n');
+      else skeleton = '<!--SPRITE-->\n' + skeleton;
       frameW = m.width || 0; frameH = m.height || 0;
       if (mergePending) {
         const merged = mergeResponsive(references, skeleton);
@@ -437,11 +455,13 @@
       }
       let fixMsg = '';
       fixMsg = references.length ? 'Responsive layout combined locally — no API key' : 'Generated locally — no API key';
+      localSkeleton = skeleton; generationReady = true;
       setLoading(false);
       $('empty').style.display = 'none';
       refreshViews();
       if (fixMsg) toast(fixMsg);
       } catch (error) {
+        generationReady = false;
         setLoading(false);
         $('copy').disabled = true; $('copyfull').disabled = true;
         showErr('Could not combine the selected designs: ' + (error.message || error));
@@ -470,6 +490,52 @@
     const marker = /\{?\/?\*?\s*<!--SPRITE-->\s*\*?\/?\}?/;
     return marker.test(code) ? code.replace(marker, () => sprite) : sprite + code;
   }
+
+  // Only the explicit AI button contacts the backend. Generate always stays local.
+  function requestScreenshots() {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => { pendingScreenshots = null; reject(new Error('Screenshot capture timed out. Generate again and retry.')); }, 20000);
+      pendingScreenshots = { resolve: (value) => { clearTimeout(timer); resolve(value); }, reject: (error) => { clearTimeout(timer); reject(error); } };
+      parent.postMessage({ pluginMessage: { type: 'ai-screenshots' } }, '*');
+    });
+  }
+  async function packScreenshot(bytes) {
+    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
+    try {
+      const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
+      const context = canvas.getContext('2d'); context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(bitmap, 0, 0);
+      return canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
+    } finally { bitmap.close(); }
+  }
+  $('ai').onclick = async () => {
+    if (!generationReady) return;
+    showErr(''); setLoading(true, 'AI cleanup...');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 80000);
+    try {
+      const url = new URL($('apiurl').value.trim());
+      if (url.protocol !== 'https:' && !(url.protocol === 'http:' && url.hostname === 'localhost')) throw new Error('Use an HTTPS backend URL (or http://localhost:3000 for development).');
+      const screenshots = await requestScreenshots();
+      const packed = await Promise.all(screenshots.map(async (shot) => ({ width: shot.width, height: shot.height, screenshot: await packScreenshot(shot.bytes) })));
+      if (packed.length !== (references.length || 1)) throw new Error('The selected designs changed. Generate again before using AI.');
+      if (!references.length && (packed[0].width !== frameW || packed[0].height !== frameH)) throw new Error('Frame dimensions changed. Generate again.');
+      const viewportRefs = references.map((ref, i) => ({ name: ref.name, width: ref.width, height: ref.height, html: ref.html, screenshot: packed[i].screenshot }));
+      if (viewportRefs.some((ref, i) => ref.width !== packed[i].width || ref.height !== packed[i].height)) throw new Error('Frame dimensions changed. Generate again.');
+      const response = await fetch(url.href.replace(/\/+$/, '') + '/api/refine', {
+        method: 'POST', signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'x-plugin-key': $('pluginkey').value },
+        body: JSON.stringify({ html: skeleton, format: 'html', instructions: $('instructions').value.trim(), width: frameW, height: frameH, responsive: generatedResponsive, references: viewportRefs, screenshot: viewportRefs.length ? '' : packed[0].screenshot })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Backend returned HTTP ' + response.status);
+      if (data.truncated || !String(data.code || '').trim()) throw new Error('AI returned incomplete code. Your local code is preserved.');
+      const nextHtml = restoreHtml(data.code);
+      skeleton = data.code; html = nextHtml;
+      refreshViews(); toast('AI cleanup complete: ' + (data.model || 'Gemini'));
+    } catch (error) { showErr('AI cleanup failed: ' + (error.message || error) + '. Generated code is preserved.'); }
+    finally { clearTimeout(timer); setLoading(false); }
+  };
+  $('undoai').onclick = () => { skeleton = localSkeleton; html = restoreHtml(skeleton); refreshViews(); setLoading(false); showErr(''); toast('Local code restored'); };
 
 
   parent.postMessage({ pluginMessage: { type: 'ready' } }, '*');

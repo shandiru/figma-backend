@@ -57,9 +57,13 @@ function context(fixtures = {}) {
   return ctx;
 }
 
-test('UI JavaScript parses and generation contains no API calls', () => {
+test('UI JavaScript parses and only the optional AI button calls the backend', () => {
   new vm.Script(script);
-  assert.doesNotMatch(script, /\bfetch\s*\(|\/api\//);
+  const generate = script.slice(script.indexOf("  $('gen').onclick"), script.indexOf("  $('dbg').onclick"));
+  const result = script.slice(script.indexOf("    if (m.type === 'result')"), script.indexOf('  function renderStats'));
+  assert.doesNotMatch(generate + result, /\bfetch\s*\(|\/api\//);
+  assert.equal((script.match(/\bfetch\s*\(/g) || []).length, 1);
+  assert.match(script, /\$\('ai'\)\.onclick = async/);
 });
 
 test('one shared tree merges layout, inline paints, images, order and tablet sizes', () => {
@@ -125,4 +129,62 @@ test('Figma selection exports sorted viewport references without screenshots or 
   assert.equal((result.html.match(/<div/g) || []).length, 1);
   await vm.runInContext('generate({ responsive: false, images: false, exact: true })', ctx);
   assert.equal(messages.at(-1).type, 'error');
+});
+
+function svgContext() {
+  const ctx = vm.createContext({ __html__: '', figma: { showUI() {}, on() {}, ui: {} } });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, 'code.js'), 'utf8'), ctx);
+  return ctx;
+}
+
+test('SVG symbols preserve root fill, stroke, opacity and paint references', () => {
+  const ctx = svgContext();
+  ctx.svg = '<svg id="Logo" width="240" height="80" viewBox="0 0 240 80" fill="none" stroke="#ff0000" opacity="0.5"><path d="M0 0L10 10"/></svg>';
+  const symbol = vm.runInContext('spriteSymbol(svg, "i1")', ctx);
+  assert.match(symbol, /fill="none"/);
+  assert.match(symbol, /stroke="#ff0000"/);
+  assert.match(symbol, /opacity="0.5"/);
+  assert.match(symbol, /viewBox="0 0 240 80"/);
+  assert.doesNotMatch(symbol, /width=|height=/);
+  assert.equal((symbol.match(/\bid=/g) || []).length, 1);
+});
+
+test('gradient, mask and clip IDs are unique for every exported SVG', () => {
+  const ctx = svgContext();
+  ctx.svg = `<svg viewBox="0 0 10 10"><defs><linearGradient id="paint0"/><mask id='mask0'/><clipPath id="clip0"/></defs><path fill="url(#paint0)" mask="url('#mask0')" clip-path="url(#clip0)"/><use href="#clip0"/><use xlink:href='#paint0'/></svg>`;
+  const first = vm.runInContext('spriteSymbol(svg, "i1")', ctx);
+  const second = vm.runInContext('spriteSymbol(svg, "i2")', ctx);
+  assert.match(first, /id="i1-paint0"/);
+  assert.match(first, /url\(#i1-paint0\)/);
+  assert.match(first, /url\('#i1-mask0'\)/);
+  assert.match(first, /href="#i1-clip0"/);
+  assert.match(first, /xlink:href='#i1-paint0'/);
+  assert.match(second, /id="i2-paint0"/);
+  assert.doesNotMatch(second, /i1-/);
+});
+
+test('SVGs with different root colors are not deduplicated into one symbol', async () => {
+  const ctx = svgContext();
+  ctx.assets = { fonts: {}, syms: {}, symN: 0, symDefs: [], svgP: {} };
+  ctx.node = { id: 'logo', type: 'VECTOR', width: 240, height: 80, fills: [{ type: 'SOLID' }], strokes: [], name: 'Logo', exportAsync() {} };
+  ctx.assets.svgP.logo = '<svg viewBox="0 0 240 80" fill="#ffffff"><path d="M0 0L1 1"/></svg>';
+  await vm.runInContext('svgHtml(node, null, {}, "", true, assets)', ctx);
+  ctx.assets.svgP.logo = '<svg viewBox="0 0 240 80" fill="#ff0000"><path d="M0 0L1 1"/></svg>';
+  await vm.runInContext('svgHtml(node, null, {}, "", true, assets)', ctx);
+  assert.equal(ctx.assets.symDefs.length, 2);
+  assert.match(ctx.assets.symDefs[0], /fill="#ffffff"/);
+  assert.match(ctx.assets.symDefs[1], /fill="#ff0000"/);
+});
+
+test('responsive typography scales line height and removes inherited duplicate classes', () => {
+  const ctx = svgContext();
+  const values = vm.runInContext('rspText(64, { responsive: true })', ctx);
+  assert.ok(values.includes('xl:text-[64px]'));
+  assert.ok(!values.some((value) => value.startsWith('2xl:')));
+  const switched = vm.runInContext('rspSwitch("flex-col", "flex-row")', ctx);
+  assert.deepEqual(Array.from(switched), ['flex-col', 'lg:flex-row']);
+  ctx.segment = { fontSize: 64, fontName: { family: 'Inter', style: 'Regular' }, fontWeight: 400, lineHeight: { unit: 'PIXELS', value: 72 }, fills: [] };
+  const styles = vm.runInContext('segStyle(segment, {}, { responsive: true }, { fonts: {} })', ctx);
+  assert.ok(styles.cls.includes('leading-[39.6px]'));
+  assert.ok(styles.cls.includes('xl:leading-[72px]'));
 });

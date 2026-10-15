@@ -11,8 +11,10 @@
       "https://cdn.tailwindcss.com",
       "https://fonts.googleapis.com",
       "https://fonts.gstatic.com",
-      "https://placehold.co"
+      "https://placehold.co",
+      "https://*.vercel.app"
     ],
-    "reasoning": "Tailwind CDN, Google Fonts and placeholder images for the live preview. Code generation runs locally without AI or API keys."
+    "devAllowedDomains": ["http://localhost:3000"],
+    "reasoning": "Tailwind, Google Fonts and placeholder images for preview. The optional Enhance with AI button sends selected design references to your Vercel backend; Generate stays local."
   }
 }

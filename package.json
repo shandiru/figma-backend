@@ -6,6 +6,7 @@
   "main": "src/server.js",
   "engines": { "node": ">=18" },
   "scripts": {
+    "test": "node --test plugin/responsive.test.js test/refine.test.js",
     "dev": "node --watch src/server.js",
     "start": "node src/server.js"
   },
