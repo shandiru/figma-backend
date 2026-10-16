@@ -19,18 +19,20 @@ For Vercel, set the project Root Directory to `backend` when deploying the outer
 
 ## Generate and download
 
-1. Select a desktop frame, or select matching mobile + desktop frames together. A tablet reference is optional (up to three different widths).
+1. Select your mobile frame/component and click **Use selection as Mobile**. Select your desktop design and click **Use selection as Desktop**. The pair stays saved while you change the canvas selection. Alternatively, clear the saved pair and select both designs together. Groups and component sets with two or three viewport variants are supported too.
 2. Keep **Responsive** enabled and click **Generate**.
 3. Inspect mobile, sm (640), md (768), lg (1024), xl (1280), 2xl (1536), or enter a width from 320 to 4096px.
 4. Click **Download ZIP**. Use **Save ZIP** if the automatic download is blocked.
 
-The plugin reads the Figma tree and exports original vector icons and image bytes. It matches shared layers by name/type, combines references into one HTML tree, and encodes raster images as WebP. Express cleans HTML utilities, compiles Tailwind CSS, and packages the ZIP. No Tailwind runtime CDN or model call is needed.
+The plugin reads the Figma tree and exports original vector icons and image bytes. It matches shared layers using names, text content, compatible component/instance types and sibling structure, combines references into one HTML tree, and encodes raster images as WebP. Repeated generic Figma names are paired in order rather than automatically reported as errors. Express cleans HTML utilities, compiles Tailwind CSS, and packages the ZIP. No Tailwind runtime CDN or model call is needed.
 
 ZIP contents: `index.html`, `assets/tailwind.css`, `assets/images/*.webp`, `assets/icons/*.svg`, `tailwind.config.js`, `input.css`, and `README.txt`. CSS and assets work from disk. Google Fonts need internet; system fallback fonts work offline. Rebuild edited classes with Tailwind v3 using the included config and input CSS.
 
 ## Responsive behavior
 
 Auto Layout maps to flex/grid. Coordinate layouts are grouped into flow rows; repeated cards become one/two/three-column grids. Typography and spacing adapt at useful thresholds. A phone + desktop card grid receives a two-column tablet step; a supplied tablet reference takes priority. Larger viewports inherit styles until an override is needed, so every element does not need every breakpoint prefix.
+
+With two references, tablet typography and spacing interpolate between the measured mobile and desktop values. On XL and wider screens the page can grow to the selected desktop design width instead of being capped at 1280px. A supplied tablet frame overrides inferred tablet values. Saved reference pairs automatically enable responsive output; clear them to generate an independent exact layout.
 
 Use matching descriptive names and consistent nesting for shared layers. Unmatched layers are hidden outside their source viewport and flagged for review. Freeform compositions and different nesting can need manual adjustments. **Exact layout** exports one fixed frame; it cannot combine multiple references.
 

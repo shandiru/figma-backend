@@ -91,7 +91,7 @@ test('one shared tree merges layout, inline paints, images, order and tablet siz
   const result = vm.runInContext('mergeResponsive(refs, ".im1{--im:url(__IMG_mobile__)}.im2{--im:url(__IMG_desktop__)}")', ctx);
   assert.equal((result.html.match(/Shared title/g) || []).length, 1);
   assert.equal((result.html.match(/<section/g) || []).length, 1);
-  assert.match(result.html, /max-w-7xl/);
+  assert.match(result.html, /max-w-\[1440px\]/);
   assert.doesNotMatch(result.html, /max-w-\[390px\]|data-layer|data-kind/);
   assert.match(result.html, /md:flex-row/);
   assert.doesNotMatch(result.html, /sm:text-/);
@@ -100,6 +100,54 @@ test('one shared tree merges layout, inline paints, images, order and tablet siz
   assert.match(result.html, /@media\(min-width:1024px\).*__IMG_desktop__/);
   assert.match(result.html, /lg:order-\[1\]/);
   assert.equal(result.unmatched, 0);
+});
+
+test('component and instance trees with renamed and repeated layers match by content and structure', () => {
+  const cards = (offset, type) => new Element('section', 'Frame ' + offset, 'grid grid-cols-1', Array.from({ length: 12 }, (_, index) => {
+    const card = new Element('div', 'Frame ' + (offset + index), 'flex flex-col', [new Element('p', 'Text ' + (offset + index), 'text-[24px]', [], 'Feature ' + index)]);
+    card.attributes['data-kind'] = type;
+    return card;
+  }));
+  const ctx = context({ mobile: cards(100, 'COMPONENT'), desktop: cards(900, 'INSTANCE') });
+  ctx.refs = [{ width: 390, html: 'mobile' }, { width: 1440, html: 'desktop' }];
+  const result = vm.runInContext('mergeResponsive(refs)', ctx);
+  assert.equal(result.unmatched, 0);
+  assert.equal((result.html.match(/Feature /g) || []).length, 12);
+  assert.doesNotMatch(result.html, /hidden/);
+});
+
+test('two references infer tablet typography and spacing while retaining the desktop values', () => {
+  const ctx = context();
+  ctx.mobile = new Element('p', 'Title Mobile', 'text-[28px] p-4 gap-4');
+  ctx.desktop = new Element('p', 'Title Desktop', 'text-[64px] p-16 gap-12');
+  const classes = vm.runInContext('mergeClassMaps([classMap(mobile), classMap(desktop)], [0, 3])', ctx);
+  assert.match(classes, /text-\[28px\] md:text-\[46px\] lg:text-\[64px\]/);
+  assert.match(classes, /md:pt-\[40px\] lg:pt-16/);
+});
+
+test('mobile and desktop references can be captured separately and component sets expand to variants', async () => {
+  const messages = [];
+  const frame = (id, width, type) => ({ id, name: id, type, width, height: 800, layoutMode: 'VERTICAL', children: [], fills: [], strokes: [] });
+  const mobile = frame('mobile', 390, 'COMPONENT'), desktop = frame('desktop', 1440, 'INSTANCE');
+  const figma = { showUI() {}, on() {}, currentPage: { selection: [mobile] }, ui: { postMessage: message => messages.push(message) } };
+  const ctx = vm.createContext({ __html__: '', figma });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, 'code.js'), 'utf8'), ctx);
+  await figma.ui.onmessage({ type: 'capture-reference', role: 'mobile' });
+  await vm.runInContext('generate({ responsive: true })', ctx);
+  assert.match(messages.at(-1).msg, /Set both Mobile and Desktop/);
+  figma.currentPage.selection = [desktop];
+  await figma.ui.onmessage({ type: 'capture-reference', role: 'desktop' });
+  figma.currentPage.selection = [];
+  await vm.runInContext('generate({ responsive: false, exact: true })', ctx);
+  assert.deepEqual(Array.from(messages.findLast(message => message.type === 'result').references, ref => ref.width), [390, 1440]);
+  desktop.removed = true;
+  await vm.runInContext('generate({ responsive: true })', ctx);
+  assert.match(messages.at(-1).msg, /Set both Mobile and Desktop/);
+  desktop.removed = false;
+  await figma.ui.onmessage({ type: 'clear-references' });
+  figma.currentPage.selection = [{ type: 'COMPONENT_SET', children: [desktop, mobile] }];
+  await vm.runInContext('generate({ responsive: true })', ctx);
+  assert.deepEqual(Array.from(messages.findLast(message => message.type === 'result').references, ref => ref.width), [390, 1440]);
 });
 
 test('unmatched controls are hidden outside their source viewport and reported', () => {

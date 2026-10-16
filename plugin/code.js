@@ -518,14 +518,34 @@ async function renderNode(n, parent, opts, depth, ctx) {
 }
 
 const say = (msg) => figma.ui.postMessage({ type: 'progress', msg });
+const referenceSlots = { mobile: null, desktop: null };
+const referenceNode = (n) => n && !n.removed && ['FRAME', 'COMPONENT', 'INSTANCE', 'GROUP'].includes(n.type);
+function sendReferences() {
+  const slots = {};
+  for (const role of ['mobile', 'desktop']) {
+    const node = referenceSlots[role];
+    slots[role] = referenceNode(node) ? { name: node.name, width: Math.round(node.width) } : null;
+  }
+  figma.ui.postMessage({ type: 'reference-slots', slots });
+}
 
 
 async function generate(opts) {
-  const sel = [...figma.currentPage.selection].sort((a, b) => a.width - b.width);
+  opts = { ...opts };
+  let selection = [...figma.currentPage.selection];
+  if (referenceSlots.mobile || referenceSlots.desktop) {
+    const { mobile, desktop } = referenceSlots;
+    if (!referenceNode(mobile) || !referenceNode(desktop)) return figma.ui.postMessage({ type: 'error', msg: 'Set both Mobile and Desktop references. Select each design and click its Use selection button, or clear the pair.' });
+    if (mobile.id === desktop.id || mobile.width >= desktop.width) return figma.ui.postMessage({ type: 'error', msg: 'Mobile must be a different, narrower design than Desktop. Update the reference slots.' });
+    selection = [mobile, desktop];
+    opts.responsive = true; opts.exact = false;
+  }
+  // Selecting a component set means selecting its viewport variants.
+  const sel = selection.flatMap((n) => n.type === 'COMPONENT_SET' ? n.children.filter((child) => child.visible !== false) : [n]).sort((a, b) => a.width - b.width);
   if (!sel.length) return figma.ui.postMessage({ type: 'error', msg: 'Oru Frame select pannunga.' });
   const multi = sel.length > 1;
   if (multi && (!opts.responsive || opts.exact)) return figma.ui.postMessage({ type: 'error', msg: 'Enable Responsive to combine mobile, tablet and desktop designs.' });
-  if (multi && (sel.length > 3 || sel.some((n) => !['FRAME', 'COMPONENT', 'INSTANCE'].includes(n.type)) || new Set(sel.map((n) => Math.round(n.width))).size !== sel.length)) {
+  if (multi && (sel.length > 3 || sel.some((n) => !referenceNode(n)) || new Set(sel.map((n) => Math.round(n.width))).size !== sel.length)) {
     return figma.ui.postMessage({ type: 'error', msg: 'Select 2 or 3 matching designs at different widths: mobile, optional tablet, desktop.' });
   }
   if (opts.exact) opts.responsive = false;
@@ -588,7 +608,17 @@ function sendSelection() {
 }
 figma.on('selectionchange', sendSelection);
 figma.ui.onmessage = async (m) => {
-  if (m.type === 'generate') generate(m.opts);
+  if (m.type === 'capture-reference' && ['mobile', 'desktop'].includes(m.role)) {
+    const selected = figma.currentPage.selection;
+    if (selected.length !== 1 || !referenceNode(selected[0])) return figma.ui.postMessage({ type: 'reference-error', msg: 'Select one frame, component, instance or group on the canvas, then click Use selection.' });
+    referenceSlots[m.role] = selected[0];
+    sendReferences();
+  }
+  if (m.type === 'clear-references') {
+    referenceSlots.mobile = null; referenceSlots.desktop = null;
+    sendReferences();
+  }
+  if (m.type === 'generate') await generate(m.opts);
   if (m.type === 'ready') {
     sendSelection();
     if (figma.clientStorage) {

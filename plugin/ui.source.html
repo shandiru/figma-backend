@@ -97,6 +97,14 @@
   .card label { color: var(--tx2); font-size: 11px; }
   .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
   #cfgmsg { font-size: 11px; min-height: 16px; white-space: pre-wrap; }
+  .references { padding: 10px 14px; border-bottom: 1px solid var(--bd); background: var(--bg2); }
+  .reference-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 8px 0; }
+  .reference-slot { min-width: 0; padding: 10px; border: 1px solid var(--bd); border-radius: 8px; background: var(--bg); }
+  .reference-slot strong,.reference-slot small { display: block; overflow-wrap: anywhere; }
+  .reference-slot small { color: var(--tx2); margin: 4px 0 8px; }
+  .reference-help { color: var(--tx2); font-size: 11px; }
+  .tabs,.devices,.bar,footer { flex-wrap: wrap; }
+  .devices { max-width: 100%; }
 </style>
 </head>
 <body>
@@ -110,6 +118,16 @@
     </div>
   </header>
 
+  <section class="references" aria-label="Responsive design references">
+    <strong>Mobile + desktop → one responsive page</strong>
+    <div class="reference-help">Select each design separately on the canvas and save it below. You can also select both designs together and Generate.</div>
+    <div class="reference-grid">
+      <div class="reference-slot"><strong>Mobile reference</strong><small id="mobile-ref">No saved reference</small><button class="btn ghost" id="capture-mobile">Use selection as Mobile</button></div>
+      <div class="reference-slot"><strong>Desktop reference</strong><small id="desktop-ref">No saved reference</small><button class="btn ghost" id="capture-desktop">Use selection as Desktop</button></div>
+    </div>
+    <span class="reference-help" id="reference-summary" role="status">Tablet and XL layouts are inferred from your references.</span>
+    <button class="btn ghost" id="clear-references">Clear saved pair</button>
+  </section>
   <div class="bar">
     <label class="switch"><input type="checkbox" id="rsp" checked><span class="track"></span>Responsive</label>
     <label class="switch"><input type="checkbox" id="img" checked><span class="track"></span>Embed images</label>
@@ -261,6 +279,8 @@
   layoutPreview();
 
   $('rsp').onchange = () => { if ($('rsp').checked) $('exact').checked = false; };
+  for (const role of ['mobile', 'desktop']) $('capture-' + role).onclick = () => parent.postMessage({ pluginMessage: { type: 'capture-reference', role } }, '*');
+  $('clear-references').onclick = () => parent.postMessage({ pluginMessage: { type: 'clear-references' } }, '*');
   $('exact').onchange = () => { if ($('exact').checked) $('rsp').checked = false; };
   document.querySelectorAll('.tab').forEach((b) => b.onclick = () => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === b));
@@ -423,7 +443,7 @@
       map.set('min-w', 'min-w-0');
       map.set('break', 'break-words');
     }
-    if (root) { map.set('w', 'w-full'); map.set('max-w', 'max-w-7xl'); }
+    if (root) { map.set('w', 'w-full'); map.set('max-w', maxWidth ? `max-w-[${Math.round(maxWidth)}px]` : 'max-w-7xl'); }
     return map;
   }
   function defaultUtility(group) {
@@ -443,12 +463,24 @@
         // A supplied tablet reference always takes priority over this inference.
         if (group === 'grid-cols' && maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && maps[0].get(group) === 'grid-cols-1' && /^grid-cols-(?:[3-9]|1[0-2])$/.test(maps[1].get(group) || '')) value = 'grid-cols-2';
         if (group === 'grid-cols' && maps.length === 2 && active === 0 && i > 2 && starts[1] > i && previous === 'grid-cols-2') value = previous;
+        if (maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && (group === 'font-size' || /^(?:p[trbl]|gap(?:-[xy])?)$/.test(group))) {
+          const mobile = numericUtility(maps[0].get(group), group), desktop = numericUtility(maps[1].get(group), group);
+          if (mobile !== null && desktop !== null && mobile !== desktop) value = `${group === 'font-size' ? 'text' : group}-[${Math.round((mobile + desktop) / 2)}px]`;
+        }
         // Inherit between measured layouts; do not manufacture classes at every breakpoint.
         if (value && value !== previous) output.push(VARIANTS[i] + value);
         previous = value;
       }
     }
     return output.join(' ');
+  }
+  function numericUtility(token, group) {
+    if (!token) return null;
+    const arbitrary = token.match(/-\[([\d.]+)px\]$/);
+    if (arbitrary) return Number(arbitrary[1]);
+    if (group === 'font-size') return { 'text-xs': 12, 'text-sm': 14, 'text-base': 16, 'text-lg': 18, 'text-xl': 20, 'text-2xl': 24, 'text-3xl': 30, 'text-4xl': 36, 'text-5xl': 48, 'text-6xl': 60, 'text-7xl': 72, 'text-8xl': 96, 'text-9xl': 128 }[token] ?? null;
+    const scale = token.match(/-([\d.]+|px)$/);
+    return scale ? scale[1] === 'px' ? 1 : Number(scale[1]) * 4 : null;
   }
   function mergeResponsive(refs, markup) {
     const roots = refs.map((ref) => new DOMParser().parseFromString(ref.html, 'text/html').body.firstElementChild);
@@ -470,8 +502,35 @@
     const css = [];
     let counter = 0, unmatched = 0;
     const children = (node) => node ? [...node.children].filter((child) => child.hasAttribute('data-layer')) : [];
-    const name = (node) => (node.getAttribute('data-layer') || '').trim().toLowerCase();
-    const kind = (node) => node.getAttribute('data-kind');
+    const name = (node) => (node.getAttribute('data-layer') || '').trim().toLowerCase().replace(/\b(?:mobile|desktop|tablet|phone|large|small)\b/g, '').replace(/[\s_/-]+/g, ' ').trim();
+    const kind = (node) => /^(?:FRAME|COMPONENT|INSTANCE|GROUP)$/.test(node.getAttribute('data-kind') || '') ? 'CONTAINER' : node.getAttribute('data-kind');
+    const contentCache = new WeakMap();
+    const content = (node) => {
+      if (!contentCache.has(node)) contentCache.set(node, node.textContent.replace(/\s+/g, ' ').trim().toLowerCase());
+      return contentCache.get(node);
+    };
+    const generic = (value) => !value || /^(?:frame|group|component|instance|rectangle|vector|text)(?:\s*\d+)?$/.test(value);
+    const shape = (node) => kind(node) + ':' + node.tagName + '(' + children(node).map((child) => kind(child) + ':' + child.tagName).join(',') + ')';
+    function matchingScore(left, right, leftIndex, rightIndex, equalCount) {
+      if (kind(left) !== kind(right)) return -1;
+      // Controls and media must not be paired with unrelated container markup.
+      if (left.tagName !== right.tagName && (/^(?:BUTTON|A|INPUT|IMG|NAV)$/.test(left.tagName) || /^(?:BUTTON|A|INPUT|IMG|NAV)$/.test(right.tagName))) return -1;
+      const a = content(left), b = content(right), sameName = name(left) === name(right) && !generic(name(left));
+      let score = sameName ? 18 : 0;
+      if (a && a === b) score += 32;
+      else if (a && b) {
+        const wordsA = new Set(a.split(/\s+/)), wordsB = new Set(b.split(/\s+/));
+        const shared = [...wordsA].filter((word) => wordsB.has(word)).length;
+        const similarity = shared / Math.max(wordsA.size, wordsB.size);
+        if (similarity >= 0.65) score += 16 * similarity;
+      }
+      const sameShape = shape(left) === shape(right);
+      // Generic Figma names differ routinely. Match equivalent repeated structures in order.
+      if (!score && sameShape && equalCount && (generic(name(left)) && generic(name(right)))) score = 10;
+      if (!score && !a && !b && sameShape && equalCount) score = 8;
+      if (!score) return -1;
+      return score + (sameShape ? 3 : 0) + (left.tagName === right.tagName ? 2 : 0) + 1 / (1 + Math.abs(leftIndex - rightIndex));
+    }
     function merge(nodes, root) {
       const source = nodes.filter(Boolean).slice(-1)[0], result = source.cloneNode(true);
       result.removeAttribute('data-layer'); result.removeAttribute('data-kind');
@@ -492,15 +551,20 @@
       const slots = lists[0].map((node) => [node]);
       for (let i = 1; i < lists.length; i++) {
         const used = new Set();
-        for (const slot of slots) {
+        const pairs = [];
+        for (const [slotIndex, slot] of slots.entries()) {
           const reference = slot.find(Boolean);
-          let candidates = lists[i].filter((node) => !used.has(node) && kind(node) === kind(reference) && name(node) === name(reference));
-          if (candidates.length !== 1 && kind(reference) === 'TEXT') candidates = lists[i].filter((node) => !used.has(node) && kind(node) === 'TEXT' && node.textContent.trim() === reference.textContent.trim());
-          if (candidates.length > 1) unmatched++;
-          const match = candidates[0] || null;
-          slot[i] = match;
-          if (match) used.add(match);
+          for (const [nodeIndex, candidate] of lists[i].entries()) {
+            const score = matchingScore(reference, candidate, slotIndex, nodeIndex, lists[i].length === slots.length);
+            if (score >= 0) pairs.push({ slot, candidate, score });
+          }
         }
+        const assigned = new Set();
+        pairs.sort((a, b) => b.score - a.score);
+        for (const { slot, candidate } of pairs) if (!assigned.has(slot) && !used.has(candidate)) {
+          slot[i] = candidate; assigned.add(slot); used.add(candidate);
+        }
+        for (const slot of slots) if (!assigned.has(slot)) slot[i] = null;
         for (const node of lists[i]) if (!used.has(node)) { const slot = Array(refs.length).fill(null); slot[i] = node; slots.push(slot); }
       }
       result.replaceChildren();
@@ -534,6 +598,18 @@
     if (m.type === 'selection') {
       $('dot').classList.toggle('on', m.count > 0);
       $('sel').textContent = m.count === 0 ? 'No frame selected' : m.count === 1 ? m.names[0] : m.count + ' layers selected';
+      if (m.count > 1) { $('rsp').checked = true; $('exact').checked = false; }
+    }
+    if (m.type === 'reference-error') showErr(m.msg);
+    if (m.type === 'reference-slots') {
+      showErr('');
+      for (const role of ['mobile', 'desktop']) {
+        const ref = m.slots[role];
+        $(role + '-ref').textContent = ref ? ref.name + ' · ' + ref.width + 'px' : 'No saved reference';
+      }
+      const paired = m.slots.mobile && m.slots.desktop;
+      $('reference-summary').textContent = paired ? 'Pair ready. Generate builds mobile, tablet, desktop and XL from these two references.' : 'Save both references, or clear the pair to use the current canvas selection.';
+      if (m.slots.mobile || m.slots.desktop) { $('rsp').checked = true; $('exact').checked = false; }
     }
     if (m.type === 'debug') { copy(m.json); toast('Layout debug copied (' + Math.round(m.json.length / 1024) + ' KB)'); }
     if (m.type === 'progress') { setLoading(true, m.msg); reportGeneration('progress', m.msg); }
@@ -556,7 +632,7 @@
         skeleton = skeleton.replace(references[references.length - 1].html, () => merged.html);
         html = restoreHtml(skeleton);
         mergePending = false;
-        if (merged.unmatched) showErr(merged.unmatched + ' layers need review (unmatched or repeated names). Check matching layer names and preview every screen size.');
+        if (merged.unmatched) showErr(merged.unmatched + ' layers exist in only one reference or could not be matched. They keep their source viewport visibility. Review those sections in the preview.');
       }
       if (frameW) {
         devW = frameW;

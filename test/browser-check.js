@@ -12,6 +12,70 @@ const cfg = require('../src/config');
 cfg.MONGODB_URI = '';
 const app = require('../src/app');
 
+async function verifyReferencePair(browser, backend, out) {
+  const mobile = sampleDesign(), desktop = sampleDesign();
+  mobile.type = 'COMPONENT'; mobile.width = 390;
+  desktop.type = 'INSTANCE';
+  mobile.children[1].layoutMode = 'VERTICAL';
+  mobile.children[1].width = 358;
+  desktop.children[1].layoutMode = 'HORIZONTAL';
+  mobile.children[1].children[0].children[0].segments[0].fontSize = 32;
+  mobile.children[1].children[0].children[0].fontSize = 32;
+  function rename(node, prefix, count = { value: 0 }) {
+    node.id = prefix + '-' + count.value++;
+    node.name = (node.type === 'TEXT' ? 'Text ' : 'Frame ') + node.id;
+    for (const child of node.children || []) rename(child, prefix, count);
+    return node;
+  }
+  hydrate(rename(mobile, 'mobile')); hydrate(rename(desktop, 'desktop'));
+  const page = await browser.newPage(), pending = [], errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const figma = { showUI() {}, on() {}, currentPage: { selection: [mobile] }, ui: { postMessage: message => pending.push(message) } };
+  const ctx = vm.createContext({ __html__: '', figma });
+  vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
+  await page.exposeFunction('dispatchToFigma', async message => {
+    await figma.ui.onmessage(message);
+    for (const reply of pending.splice(0)) await page.evaluate(payload => window.postMessage({ pluginMessage: payload }, '*'), reply);
+  });
+  await page.route('https://**/*', route => route.abort());
+  const bridge = `<script>window.addEventListener('message',event=>{const message=event.data.pluginMessage;if(message&&['ready','capture-reference','clear-references','generate','save-backend-settings'].includes(message.type))window.dispatchToFigma(message);});</script>`;
+  await page.setContent(fs.readFileSync('plugin/ui.html', 'utf8').replace('<script id="plugin-app">', bridge + '<script id="plugin-app">'));
+  await page.locator('details > summary').click();
+  await page.locator('#apiurl').fill(backend);
+  await page.locator('label.switch').filter({ has: page.locator('#img') }).click();
+  await page.locator('#capture-mobile').click();
+  await page.waitForFunction(() => document.querySelector('#mobile-ref').textContent.includes('390px'));
+  figma.currentPage.selection = [desktop];
+  await page.locator('#capture-desktop').click();
+  await page.waitForFunction(() => document.querySelector('#desktop-ref').textContent.includes('1440px'));
+  figma.currentPage.selection = [];
+  await page.locator('#gen').click();
+  await page.waitForFunction(() => !document.querySelector('#zip').disabled);
+  assert.equal(await page.locator('#err').textContent(), '');
+  const measurements = [];
+  for (const width of [375, 640, 768, 1024, 1280, 1440, 1536, 1920]) {
+    await page.locator('#viewport').fill(String(width));
+    const value = await page.locator('#prev').evaluate(frame => {
+      const doc = frame.contentDocument, root = doc.querySelector('main');
+      return { width: frame.contentWindow.innerWidth, scroll: doc.documentElement.scrollWidth, rootWidth: root.getBoundingClientRect().width, headings: [...doc.querySelectorAll('h1')].filter(el => el.textContent.includes('Build something remarkable')).length, titleSize: parseFloat(getComputedStyle(root.querySelector('h1')).fontSize) };
+    });
+    assert.ok(value.scroll <= width, JSON.stringify(value));
+    assert.equal(value.headings, 1, JSON.stringify(value));
+    if (width >= 1440) assert.equal(value.rootWidth, 1440, JSON.stringify(value));
+    measurements.push(value);
+  }
+  assert.ok(measurements.find(x => x.width === 768).titleSize > measurements[0].titleSize);
+  assert.ok(measurements.find(x => x.width === 768).titleSize < measurements.find(x => x.width === 1440).titleSize);
+  const download = page.waitForEvent('download');
+  await page.locator('#zip').click();
+  await (await download).saveAs(path.join(out, 'paired-components.zip'));
+  assert.deepEqual(errors, []);
+  fs.writeFileSync(path.join(out, 'paired-measurements.json'), JSON.stringify(measurements, null, 2));
+  await page.screenshot({ path: path.join(out, 'paired-plugin.png'), fullPage: true });
+  await page.close();
+  console.log('PASS: separate mobile component + desktop instance capture, renamed layers, tablet typography, XL container and ZIP.');
+}
+
 async function main() {
   const out = path.resolve('test/artifacts');
   fs.mkdirSync(out, { recursive: true });
@@ -135,6 +199,7 @@ async function main() {
       await page.screenshot({ path: path.join(out, `dashboard-${width}.png`), fullPage: true });
     }
     assert.deepEqual(errors, []);
+    await verifyReferencePair(browser, backend, out);
     console.log('PASS: Download ZIP and Save ZIP produce real downloads with bundled libraries; CSS and ZIP compile on backend without a key; Generate/ZIP appear in dashboard.');
     console.log('PASS: extracted ZIP opens from disk; WebP/SVG load; no horizontal scroll or overlap at 12 widths from 375 to 1920px.');
     console.log('Artifacts: test/artifacts/export/index.html, design.zip, before.html, after.html, preview-375.png, preview-1440.png');
