@@ -4,9 +4,12 @@
   "private": true,
   "description": "Gemini-powered refine API for the Design to Tailwind Figma plugin",
   "main": "src/server.js",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "test": "node --test plugin/responsive.test.js test/refine.test.js",
+    "test": "node --test plugin/responsive.test.js test/*.test.js",
+    "test:browser": "node test/browser-check.js",
     "dev": "node --watch src/server.js",
     "start": "node src/server.js"
   },
@@ -15,5 +18,11 @@
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
     "mongoose": "^8.9.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "jszip": "^3.10.2",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^3.4.19"
   }
 }

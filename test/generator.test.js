@@ -1,0 +1,55 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const { node, text, sampleDesign, hydrate } = require('./sample-design');
+function generator() {
+  const messages = [];
+  const ctx = vm.createContext({ __html__: '', figma: { showUI() {}, on() {}, currentPage: { selection: [] }, ui: { postMessage: (m) => messages.push(m) }, getImageByHash: () => ({ getBytesAsync: async () => new Uint8Array([1]) }) } });
+  vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
+  return { ctx, messages };
+}
+test('sample uses flow, semantic HTML, fluid images and named repeated colors', async () => {
+  const { ctx, messages } = generator();
+  ctx.figma.currentPage.selection = [hydrate(sampleDesign())];
+  await vm.runInContext('generate({ responsive: true, images: true })', ctx);
+  const result = messages.find((m) => m.type === 'result');
+  assert.ok(result, JSON.stringify(messages));
+  assert.match(result.html, /<main/);
+  assert.match(result.html, /<section/);
+  assert.match(result.html, /grid-cols-1 md:grid-cols-2 lg:grid-cols-3/);
+  assert.match(result.html, /<button type="button"/);
+  assert.match(result.html, /<span[^>]*>Get started<\/span>/);
+  assert.match(result.html, /<img[^>]+w-full[^>]+h-auto[^>]+object-cover/);
+  assert.match(result.html, /src="__IMG_photo__"/);
+  assert.match(result.html, /bg-design-/);
+  assert.ok(Object.keys(result.colors).length >= 2);
+  assert.doesNotMatch(result.html, /class="[^"]*\babsolute\b|\b(?:top|left)-\[|[" ](?:w|h)-\[/);
+  assert.match(result.html, /gap-4/); // 17px snaps to 16px
+});
+test('coordinate-only mixed rows are inferred; only genuine overlays are absolute', async () => {
+  const { ctx } = generator();
+  ctx.payload = hydrate(node('Hero', 1200, 700, [
+    text('Title', 'Title', 48, { y: 0 }),
+    text('Left', 'Left', 16, { y: 140, x: 0 }),
+    text('Right', 'Right', 16, { y: 142, x: 600 }),
+    node('Badge', 48, 24, [], { layoutPositioning: 'ABSOLUTE', x: 20, y: 20 }),
+  ]));
+  const html = await vm.runInContext('toHtml(payload, null, { responsive: true }, 0, { fonts: {} })', ctx);
+  assert.match(html, /relative/);
+  assert.equal((html.match(/\babsolute\b/g) || []).length, 1);
+  assert.match(html, /flex flex-col md:flex-row gap-6/);
+  assert.doesNotMatch(html, /h-\[700px\]/);
+});
+module.exports = { generator };
+
+test('unnamed coordinate cards form one grid without row wrappers', async () => {
+  const { ctx } = generator();
+  ctx.payload = hydrate(node('Features', 1200, 500, Array.from({ length: 6 }, (_, i) =>
+    node('Frame ' + i, 360, 200, [text('Label', 'Feature', 24)], { x: (i % 3) * 400, y: Math.floor(i / 3) * 240 })
+  )));
+  const html = await vm.runInContext('toHtml(payload, null, { responsive: true }, 0, { fonts: {} })', ctx);
+  assert.match(html, /grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3/);
+  assert.equal((html.match(/<div /g) || []).length, 6);
+  assert.doesNotMatch(html, /class="[^"]*\babsolute\b/);
+});

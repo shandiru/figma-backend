@@ -164,19 +164,24 @@
     <span class="spacer"></span>
     <button class="btn ghost" id="dbg" title="Layout structure copy pannum, issue report panna use pannunga">Debug</button>
     <button class="btn ghost" id="copy" disabled>Copy body only</button>
+    <button class="btn ghost" id="zip" disabled>Download ZIP</button>
     <button class="btn primary" id="copyfull" disabled>Copy full page</button>
   </footer>
   <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/prettier@3.6.2/standalone.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prettier@3.6.2/plugins/html.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
 
-  let html = '', fonts = {}, devW = 1280;
+  let html = '', fonts = {}, colors = {}, devW = 1280;
   let skeleton = '', sprite = '', imgUrls = {}, frameW = 0, frameH = 0;
+  let formattedPage = '';
   let references = [], mergePending = false;
   let localSkeleton = '', generationReady = false, generatedResponsive = true, pendingScreenshots = null;
   const SPRITE_RE = /<svg width="0" height="0"[^>]*>[\s\S]*?<\/defs><\/svg>\n?/;
-  const codeView = () => fullPage();
+  const codeView = () => formattedPage || fullPage();
 
   const slugOf = (f) => f.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const fallback = (f) => /mono|code|courier/i.test(f) ? 'monospace' : (/serif|playfair|merriweather|lora|georgia|times|garamond|cormorant|bodoni/i.test(f) && !/sans/i.test(f)) ? 'serif' : 'sans-serif';
@@ -186,8 +191,15 @@
     return '<link rel="preconnect" href="https://fonts.googleapis.com">\n  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n  <link href="https://fonts.googleapis.com/css2?' + fam + '&display=swap" rel="stylesheet">\n  ';
   }
   function twConfig() {
-    const ff = Object.keys(fonts).map((f) => "'" + slugOf(f) + "':['\"" + f + "\"','" + fallback(f) + "']").join(',');
-    return ff ? '<script>tailwind.config={theme:{extend:{fontFamily:{' + ff + '}}}}<\/script>\n  ' : '';
+    return '<script>tailwind.config=' + JSON.stringify(configObject()).replace(/</g, '\\u003c') + '<\/script>\n  ';
+  }
+  function configObject() {
+    const fontFamily = Object.fromEntries(Object.keys(fonts).map((f) => [slugOf(f), [f, fallback(f)]]));
+    return { content: ['./index.html'], theme: { extend: { colors, fontFamily } } };
+  }
+  async function formatHtml(source) {
+    if (!globalThis.prettier || !globalThis.prettierPlugins) return source;
+    return prettier.format(source, { parser: 'html', plugins: prettierPlugins, tabWidth: 2, printWidth: 100, htmlWhitespaceSensitivity: 'ignore' });
   }
   function fullPage() {
     return '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Design</title>\n  ' + fontLinks() + '<script src="https://cdn.tailwindcss.com"><\/script>\n  ' + twConfig() + '</head>\n<body class="m-0">\n' + html + '</body>\n</html>';
@@ -226,13 +238,66 @@
 
   $('gen').onclick = () => {
     generationReady = false;
+    $('zip').disabled = true;
     showErr(''); setLoading(true, 'Starting...');
     $('copy').disabled = true; $('copyfull').disabled = true;
     parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: $('rsp').checked && !$('exact').checked, images: $('img').checked, exact: $('exact').checked } } }, '*');
   };
   $('dbg').onclick = () => parent.postMessage({ pluginMessage: { type: 'debug' } }, '*');
   $('copy').onclick = () => { copy(html); toast('Body HTML copied'); };
-  $('copyfull').onclick = () => { copy(fullPage()); toast('Full page copied'); };
+  $('copyfull').onclick = async () => { copy(await formatHtml(fullPage())); toast('Full page copied'); };
+
+  async function buildZip() {
+    if (!globalThis.JSZip) throw new Error('ZIP library has not loaded. Check your connection and retry.');
+    const zip = new JSZip();
+    zip.folder('assets/images'); zip.folder('assets/icons');
+    let page = fullPage();
+    for (const [key, url] of Object.entries(imgUrls)) {
+      if (!url.startsWith('data:image/webp;base64,')) throw new Error('An image could not be encoded as WebP. Regenerate with images enabled.');
+      const name = 'assets/images/' + key.replace(/[^a-zA-Z0-9_-]/g, '-') + '.webp';
+      zip.file(name, url.split(',')[1], { base64: true });
+      page = page.split(url).join(name);
+    }
+    const doc = new DOMParser().parseFromString(page, 'text/html');
+    for (const symbol of doc.querySelectorAll('symbol[id]')) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      svg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      for (const attr of symbol.attributes) if (attr.name !== 'id') svg.setAttribute(attr.name, attr.value);
+      svg.innerHTML = symbol.innerHTML;
+      const name = 'assets/icons/' + symbol.id + '.svg';
+      zip.file(name, new XMLSerializer().serializeToString(svg));
+      for (const use of doc.querySelectorAll('use')) if (use.getAttribute('href') === '#' + symbol.id) {
+        const original = use.parentElement;
+        const img = doc.createElement('img');
+        for (const attr of original.attributes) img.setAttribute(attr.name, attr.value);
+        img.setAttribute('src', name); img.setAttribute('alt', '');
+        original.replaceWith(img);
+      }
+    }
+    doc.querySelectorAll('svg[width="0"][height="0"]').forEach((el) => el.remove());
+    // Freeze the preview's compiled Tailwind stylesheet so the ZIP works offline.
+    const preview = $('prev').contentDocument;
+    const css = [...preview.querySelectorAll('style')].map((el) => el.textContent).filter((text) => text.includes('--tw-')).join('\n');
+    if (!css) throw new Error('Tailwind is still loading in the preview. Wait for the styled preview and retry.');
+    zip.file('assets/tailwind.css', css);
+    doc.querySelectorAll('script').forEach((el) => el.remove());
+    const link = doc.createElement('link'); link.rel = 'stylesheet'; link.href = 'assets/tailwind.css'; doc.head.appendChild(link);
+    zip.file('index.html', await formatHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML));
+    zip.file('tailwind.config.js', 'const config = ' + JSON.stringify(configObject(), null, 2) + ';\nif (typeof module !== "undefined") module.exports = config;\nelse tailwind.config = config;\n');
+    return zip.generateAsync({ type: 'blob' });
+  }
+  $('zip').onclick = async () => {
+    try {
+      $('zip').disabled = true;
+      const blob = await buildZip();
+      const url = URL.createObjectURL(blob), a = document.createElement('a');
+      a.href = url; a.download = 'design.zip'; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast('ZIP downloaded');
+    } catch (error) { showErr(error.message); }
+    finally { $('zip').disabled = !generationReady; }
+  };
 
   // images: resize + webp compress (size romba kuraiyum)
   async function packImages(str, images, sizes) {
@@ -305,7 +370,7 @@
       map.set('min-w', 'min-w-0');
       map.set('break', 'break-words');
     }
-    if (root) { map.set('w', 'w-full'); map.set('max-w', `max-w-[${maxWidth}px]`); }
+    if (root) { map.set('w', 'w-full'); map.set('max-w', 'max-w-7xl'); }
     return map;
   }
   function defaultUtility(group) {
@@ -428,12 +493,12 @@
       if (m.error) pending.reject(new Error(m.error)); else pending.resolve(m.screenshots || []);
     }
     if (m.type === 'progress') setLoading(true, m.msg);
-    if (m.type === 'error') { setLoading(false); showErr(m.msg); }
+    if (m.type === 'error') { setLoading(false); $('zip').disabled = !generationReady; showErr(m.msg); }
     if (m.type === 'result') {
       try {
       setLoading(true, 'Optimizing images...');
       const packed = await packImages(m.html, m.images, m.sizes);
-      html = packed.str; imgUrls = packed.urls; fonts = m.fonts || {};
+      html = packed.str; imgUrls = packed.urls; fonts = m.fonts || {}; colors = m.colors || {};
       references = m.references || [];
       generatedResponsive = m.responsive !== false;
       mergePending = references.length > 1;
@@ -455,6 +520,8 @@
       }
       let fixMsg = '';
       fixMsg = references.length ? 'Responsive layout combined locally — no API key' : 'Generated locally — no API key';
+      skeleton = await formatHtml(skeleton);
+      html = await formatHtml(restoreHtml(skeleton));
       localSkeleton = skeleton; generationReady = true;
       setLoading(false);
       $('empty').style.display = 'none';
@@ -476,12 +543,14 @@
     $('stats').innerHTML = '<span class="pill">' + kb + ' KB</span><span class="pill">' + els + ' elements</span>' + Object.keys(fonts).map((f) => '<span class="pill">' + f + '</span>').join('');
   }
 
-  function refreshViews() {
+  async function refreshViews() {
+    formattedPage = await formatHtml(fullPage());
     $('out').dataset.ready = ''; $('out').value = '';
     if (document.querySelector('.tab.active').dataset.tab === 'code') { $('out').value = codeView(); $('out').dataset.ready = 1; }
     $('prev').srcdoc = fullPage(); layoutPreview();
     $('copy').disabled = mergePending;
     $('copyfull').disabled = mergePending;
+    $('zip').disabled = mergePending || !generationReady;
     renderStats();
   }
 
@@ -529,8 +598,9 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Backend returned HTTP ' + response.status);
       if (data.truncated || !String(data.code || '').trim()) throw new Error('AI returned incomplete code. Your local code is preserved.');
-      const nextHtml = restoreHtml(data.code);
-      skeleton = data.code; html = nextHtml;
+      const nextCode = await formatHtml(data.code);
+      const nextHtml = await formatHtml(restoreHtml(nextCode));
+      skeleton = nextCode; html = nextHtml;
       refreshViews(); toast('AI cleanup complete: ' + (data.model || 'Gemini'));
     } catch (error) { showErr('AI cleanup failed: ' + (error.message || error) + '. Generated code is preserved.'); }
     finally { clearTimeout(timer); setLoading(false); }

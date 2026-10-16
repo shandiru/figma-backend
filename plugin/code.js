@@ -26,7 +26,14 @@ const shouldRasterizeMask = (n) => {
 };
 // Tailwind scale class (gap-4) illana arbitrary (gap-[18px])
 const SP = { 0: '0', 1: 'px', 2: '0.5', 4: '1', 6: '1.5', 8: '2', 10: '2.5', 12: '3', 14: '3.5', 16: '4', 20: '5', 24: '6', 28: '7', 32: '8', 36: '9', 40: '10', 44: '11', 48: '12', 56: '14', 64: '16', 80: '20', 96: '24' };
-const sp = (pre, v) => { v = r(v); return SP[v] !== undefined ? `${pre}-${SP[v]}` : `${pre}-[${v}px]`; };
+function nearest(value, scale, tolerance = 0.14, minimum = 1) {
+  const key = Object.keys(scale).map(Number).sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0];
+  return Math.abs(key - value) <= Math.max(minimum, Math.abs(value) * tolerance) ? scale[key] : null;
+}
+const sp = (pre, v) => { v = r(v); const step = nearest(v, SP); return step !== null ? `${pre}-${step}` : `${pre}-[${v}px]`; };
+const TEXT_SCALE = { 12: 'xs', 14: 'sm', 16: 'base', 18: 'lg', 20: 'xl', 24: '2xl', 30: '3xl', 36: '4xl', 48: '5xl', 60: '6xl', 72: '7xl', 96: '8xl', 128: '9xl' };
+const textSize = (v) => { const step = nearest(v, TEXT_SCALE); return step ? `text-${step}` : `text-[${r(v)}px]`; };
+const maxWidth = (v) => { const step = nearest(v, { 320: 'xs', 384: 'sm', 448: 'md', 512: 'lg', 576: 'xl', 672: '2xl', 768: '3xl', 896: '4xl', 1024: '5xl', 1152: '6xl', 1280: '7xl' }); return step ? `max-w-${step}` : `max-w-[${r(v)}px]`; };
 // responsive value: mobile-first, then sm/md/lg/xl/2xl progressively restores desktop scale
 const BPS = ['', 'sm', 'md', 'lg', 'xl', '2xl'];
 const bp = (name, cls) => name ? `${name}:${cls}` : cls;
@@ -39,9 +46,9 @@ const rsp = (pre, v, opts, cfg) => {
   return responsiveVariants(BPS.map((_, i) => sp(pre, Math.max(o.min, Math.round(v * o.factors[i])))));
 };
 const rspText = (fs, opts) => {
-  if (!opts.responsive || fs < 28) return [`text-[${r(fs)}px]`];
+  if (!opts.responsive || fs < 28) return [textSize(fs)];
   const factors = fs >= 40 ? [0.55, 0.65, 0.78, 0.9, 1, 1] : [0.75, 0.82, 0.9, 0.96, 1, 1];
-  return responsiveVariants(factors.map((factor) => `text-[${r(fs * factor)}px]`));
+  return responsiveVariants(factors.map((factor) => textSize(fs * factor)));
 };
 const rspSwitch = (smallCls, largeCls) => responsiveVariants(BPS.map((_, i) => i < 3 ? smallCls : largeCls));
 const WNAME = { 100: 'thin', 200: 'extralight', 300: 'light', 400: 'normal', 500: 'medium', 600: 'semibold', 700: 'bold', 800: 'extrabold', 900: 'black' };
@@ -180,56 +187,77 @@ function sizeClasses(n, parent, opts, isRoot) {
     if (!isT) c.push(sp('h', G.h));
     return c;
   }
-  if (isRoot) return ['w-full', `max-w-[${r(n.width)}px]`, 'mx-auto'];
-  const parentAuto = parent && parent.layoutMode && parent.layoutMode !== 'NONE';
-  const g = geomOf(n, parent);
-  if (parentAuto && n.layoutPositioning !== 'ABSOLUTE') {
-    const along = parent.layoutMode === 'HORIZONTAL', stk = stacked(parent, opts);
-    const hz = n.layoutSizingHorizontal, vt = n.layoutSizingVertical;
-    const al = { MIN: '', CENTER: 'self-center', MAX: 'self-end' }[parent.counterAxisAlignItems] || '';
-    if (hz === 'FILL') {
-      if (along) c.push(...(stk ? ['w-full', 'sm:w-full', 'md:w-full', 'lg:flex-1', 'lg:min-w-0', 'xl:flex-1', 'xl:min-w-0', '2xl:flex-1', '2xl:min-w-0'] : ['flex-1', 'min-w-0']));
-      else if (typeof n.maxWidth === 'number') c.push('w-full', al);   // stretch + max-width left la ottum, adhunaala w-full + self-center
-      else c.push('self-stretch');
-    }
-    else if (hz === 'FIXED') {
-      if (along && stk && g.w >= 200) c.push('w-full', 'sm:w-full', 'md:w-full', `lg:${sp('w', g.w)}`, `xl:${sp('w', g.w)}`, `2xl:${sp('w', g.w)}`, 'lg:shrink-0', 'xl:shrink-0', '2xl:shrink-0');
-      else c.push(sp('w', g.w), along ? 'max-w-full shrink-0' : 'max-w-full');
-    }
-    if (vt === 'FILL') {
-      if (along && typeof n.maxHeight === 'number' && !stk) c.push('h-full', al);
-      else if (along && stk) c.push('sm:self-auto', 'md:self-auto', 'lg:self-stretch', 'xl:self-stretch', '2xl:self-stretch');
-      else c.push(along ? 'self-stretch' : 'flex-1');
-    }
-    else if (vt === 'FIXED' && n.type !== 'TEXT') c.push(sp('h', g.h));
-  } else if (parent) c.push(...absClasses(n, parent, g));
-  if (typeof n.minWidth === 'number') c.push(`min-w-[${r(n.minWidth)}px]`);
-  if (typeof n.maxWidth === 'number') c.push(`max-w-[${r(n.maxWidth)}px]`);
-  if (typeof n.minHeight === 'number') c.push(`min-h-[${r(n.minHeight)}px]`);
-  if (typeof n.maxHeight === 'number') c.push(`max-h-[${r(n.maxHeight)}px]`);
+  if (isRoot) return ['mx-auto', 'w-full', 'max-w-7xl', 'px-4', 'sm:px-6', 'lg:px-8'];
+  if (parent && isOverlay(n, parent)) return absClasses(n, parent, geomOf(n, parent));
+  c.push('min-w-0');
+  const horizontal = parent && parent.layoutMode === 'HORIZONTAL';
+  const hz = n.layoutSizingHorizontal;
+  if (hz === 'FILL' || n.layoutGrow === 1) c.push('w-full', 'max-w-full', ...(horizontal && !repeatedItems(parent) ? (stacked(parent, opts) ? ['lg:flex-1'] : ['flex-1']) : []));
+  else if (hz === 'HUG' || n.type === 'TEXT' || /^(button|btn|link)/i.test(n.name || '')) c.push('w-fit', 'max-w-full');
+  else c.push('w-full', maxWidth(typeof n.maxWidth === 'number' ? n.maxWidth : n.width));
+  // Content determines height. Explicit Figma minima must also fit a phone.
+  if (n.layoutSizingVertical === 'FILL' && !horizontal) c.push('flex-1');
+  if (typeof n.minHeight === 'number' && n.minHeight > 0) c.push(sp('min-h', n.minHeight));
   return c;
 }
 
-function flexClasses(n, opts) {
-  const c = [];
-  if (!n.layoutMode || n.layoutMode === 'NONE') return c;
-  const horiz = n.layoutMode === 'HORIZONTAL', stk = stacked(n, opts);
-  c.push('flex');
-  if (horiz ? stk : true) c.push(...(horiz ? rspSwitch('flex-col', 'flex-row') : ['flex-col']));
+// Layer coordinates are evidence for grouping, never the normal CSS positioning model.
+function isOverlay(n, parent) {
+  if (!parent) return false;
+  return /\b(badge|overlay|floating|decoration|decorative)\b/i.test(n.name || '') &&
+    (n.layoutPositioning === 'ABSOLUTE' || !parent.layoutMode || parent.layoutMode === 'NONE');
+}
+function layoutPlan(n) {
+  const children = (n.children || []).filter((child) => child.visible !== false && !isOverlay(child, n));
+  if (n.layoutMode && n.layoutMode !== 'NONE') return { rows: [children], inferred: false };
+  const rows = [];
+  for (const child of children.slice().sort((a, b) => (a.y || 0) - (b.y || 0) || (a.x || 0) - (b.x || 0))) {
+    const y = child.y || 0;
+    const row = rows.find((row) => Math.abs(row.y - y) <= Math.max(8, Math.min(row.height, child.height || 1) * 0.35));
+    if (row) { row.nodes.push(child); row.height = Math.min(row.height, child.height || 1); }
+    else rows.push({ y, height: child.height || 1, nodes: [child] });
+  }
+  return { rows: rows.map((row) => row.nodes.sort((a, b) => (a.x || 0) - (b.x || 0))), inferred: true };
+}
+function repeatedItems(n) {
+  const children = (n.children || []).filter((child) => child.visible !== false && !isOverlay(child, n));
+  if (children.length < 3) return false;
+  if (children.every((child) => /card|feature|pricing|plan|product|testimonial/i.test(child.name || ''))) return true;
+  const first = children[0];
+  const signature = (child) => (child.children || []).filter((n) => n.visible !== false).map((n) => n.type).join(',');
+  return !!signature(first) && children.every((child) => child.type !== 'TEXT' &&
+    signature(child) === signature(first) && Math.abs(child.width - first.width) <= first.width * 0.15 && Math.abs(child.height - first.height) <= first.height * 0.15) &&
+    (n.layoutMode === 'HORIZONTAL' || layoutPlan(n).rows.some((row) => row.length > 1));
+}
+
+function flexClasses(n, opts, isRoot = false) {
+  const c = [], plan = layoutPlan(n);
+  const horiz = n.layoutMode === 'HORIZONTAL' || (plan.inferred && plan.rows.length === 1 && plan.rows[0].length > 1);
+  const stk = horiz && opts.responsive && n.width >= 600;
+  if (repeatedItems(n)) c.push('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3');
+  else c.push('flex', ...(stk ? ['flex-col', 'lg:flex-row'] : [horiz ? 'flex-row' : 'flex-col']));
   if (n.layoutWrap === 'WRAP') c.push('flex-wrap');
-  if (n.itemSpacing) c.push(...rsp('gap', n.itemSpacing, opts, { thr: 16, min: 8, factors: [0.55, 0.65, 0.78, 0.9, 1, 1] }));
-  if (n.layoutWrap === 'WRAP' && typeof n.counterAxisSpacing === 'number' && n.counterAxisSpacing) c.push(...rsp('gap-y', n.counterAxisSpacing, opts, { thr: 16, min: 8, factors: [0.55, 0.65, 0.78, 0.9, 1, 1] }));
-  const t = n.paddingTop, rr = n.paddingRight, b = n.paddingBottom, l = n.paddingLeft;
-  const pad = (pre, v) => { if (v) c.push(...rsp(pre, v, opts, { thr: 16, min: 8, factors: [0.5, 0.62, 0.76, 0.9, 1, 1] })); };
-  if (t === rr && rr === b && b === l) pad('p', t);
+  let gap = n.itemSpacing;
+  if (plan.inferred) {
+    const distances = plan.rows.length > 1
+      ? plan.rows.slice(1).map((row, i) => (row[0].y || 0) - Math.max(...plan.rows[i].map((child) => (child.y || 0) + (child.height || 0))))
+      : (plan.rows[0] || []).slice(1).map((child, i) => (child.x || 0) - ((plan.rows[0][i].x || 0) + (plan.rows[0][i].width || 0)));
+    gap = distances.length ? Math.max(0, Math.min(...distances)) : 0;
+  }
+  if (gap > 0) c.push(...rsp('gap', gap, opts));
+  else if (repeatedItems(n)) c.push('gap-6');
+  if (n.layoutWrap === 'WRAP' && n.counterAxisSpacing > 0) c.push(...rsp('gap-y', n.counterAxisSpacing, opts));
+  const pad = (pre, value) => { if (value > 0) c.push(...rsp(pre, value, opts)); };
+  const t = n.paddingTop || 0, rr = n.paddingRight || 0, b = n.paddingBottom || 0, l = n.paddingLeft || 0;
+  // The page container owns its responsive horizontal gutters.
+  if (!isRoot && t === rr && rr === b && b === l) pad('p', t);
   else {
-    if (l === rr) pad('px', l); else { pad('pl', l); pad('pr', rr); }
+    if (!isRoot) { if (l === rr) pad('px', l); else { pad('pl', l); pad('pr', rr); } }
     if (t === b) pad('py', t); else { pad('pt', t); pad('pb', b); }
   }
   const just = { MIN: 'justify-start', CENTER: 'justify-center', MAX: 'justify-end', SPACE_BETWEEN: 'justify-between' }[n.primaryAxisAlignItems] || 'justify-start';
-  const items = { MIN: 'items-start', CENTER: 'items-center', MAX: 'items-end', BASELINE: 'items-baseline' }[n.counterAxisAlignItems] || 'items-start';
-  if (stk) { c.push(...rspSwitch('items-stretch', items)); c.push(...(just === 'justify-start' ? ['justify-start'] : rspSwitch('justify-start', just))); }
-  else { if (just !== 'justify-start') c.push(just); c.push(items); }
+  const items = { MIN: 'items-start', CENTER: 'items-center', MAX: 'items-end', BASELINE: 'items-baseline' }[n.counterAxisAlignItems] || 'items-stretch';
+  c.push(just, ...(stk ? rspSwitch('items-stretch', items) : [items]));
   return c;
 }
 
@@ -239,7 +267,10 @@ async function visualClasses(n, opts, ctx) {
   const bg = await bgFor(n, opts, ctx);
   cls.push(...bg.cls); style.push(...bg.style);
   if (n.type === 'ELLIPSE') cls.push('rounded-full');
-  else if (typeof n.cornerRadius === 'number' && n.cornerRadius) cls.push(`rounded-[${r(n.cornerRadius)}px]`);
+  else if (typeof n.cornerRadius === 'number' && n.cornerRadius) {
+    const radius = nearest(n.cornerRadius, { 2: 'sm', 4: '', 6: 'md', 8: 'lg', 12: 'xl', 16: '2xl', 24: '3xl', 999: 'full' });
+    cls.push(radius !== null ? 'rounded' + (radius ? '-' + radius : '') : `rounded-[${r(n.cornerRadius)}px]`);
+  }
   else if (typeof n.cornerRadius === 'symbol') cls.push(`rounded-tl-[${r(n.topLeftRadius)}px]`, `rounded-tr-[${r(n.topRightRadius)}px]`, `rounded-br-[${r(n.bottomRightRadius)}px]`, `rounded-bl-[${r(n.bottomLeftRadius)}px]`);
   const strokeP = visible(n.strokes).filter((p) => p.type === 'SOLID').pop();
   if (strokeP) {
@@ -283,8 +314,9 @@ function segStyle(seg, n, opts, ctx, force) {
   if (/italic/i.test(seg.fontName.style)) c.push('italic');
   const lh = seg.lineHeight;
   if (lh && lh.unit === 'PIXELS') {
-    const factors = !opts.responsive || fs < 28 ? [1] : fs >= 40 ? [0.55, 0.65, 0.78, 0.9, 1, 1] : [0.75, 0.82, 0.9, 0.96, 1, 1];
-    c.push(...responsiveVariants(factors.map((factor) => `leading-[${r(lh.value * factor)}px]`)));
+    const ratio = lh.value / fs;
+    const line = nearest(ratio, { 1: 'none', 1.25: 'tight', 1.375: 'snug', 1.5: 'normal', 1.625: 'relaxed', 2: 'loose' }, 0.04, 0.02);
+    c.push(line ? `leading-${line}` : `leading-[${r(ratio)}]`);
   }
   else if (lh && lh.unit === 'PERCENT') c.push(`leading-[${r(lh.value)}%]`);
   const ls = seg.letterSpacing;
@@ -304,9 +336,15 @@ function tagFor(n, fs, ctx) {
   const name = n.name.toLowerCase();
   if (n.type === 'TEXT') {
     if (fs >= 40) { if (ctx && !ctx.h1) { ctx.h1 = 1; return 'h1'; } return 'h2'; }
-    return fs >= 28 ? 'h2' : fs >= 20 ? 'h3' : 'p';
+    return fs >= 24 ? 'h2' : fs >= 20 ? 'h3' : 'p';
   }
-  if (/^(button|btn)/.test(name)) return 'button';
+  if (/^(button|btn|cta)/.test(name)) return 'button';
+  if (/^(link|anchor)/.test(name)) return 'a';
+  if (/^(input|email|search|textfield)/.test(name)) return 'input';
+  if (/^(list|menu items)/.test(name)) return 'ul';
+  if (/^(list item|item)/.test(name)) return 'li';
+  if (/^(card|pricing|testimonial)/.test(name)) return 'article';
+  if (/^(hero|features|pricing section)/.test(name)) return 'section';
   const m = name.match(/^(nav|header|footer|section|main|aside)/);
   return m ? m[1] : 'div';
 }
@@ -333,7 +371,8 @@ async function textHtml(n, parent, opts, ctx, ind, isRoot) {
       return `<span class="${ss.cls.join(' ')}"${ss.style.length ? ` style="${ss.style.join(';')}"` : ''}>${txt(s.characters)}</span>`;
     }).join('');
   } else inner = txt(segs[0].characters);
-  const tag = tagFor(n, segs[0].fontSize, ctx);
+  const parentTag = parent && tagFor(parent, 0);
+  const tag = ['button', 'a', 'label'].includes(parentTag) ? 'span' : tagFor(n, segs[0].fontSize, ctx);
   return `${ind}<${tag} class="${c.join(' ')}"${style.length ? ` style="${style.join(';')}"` : ''}>${inner}</${tag}>`;
 }
 
@@ -414,8 +453,21 @@ function prefetch(n, opts, ctx) {
 
 /* ---------- main tree walk ---------- */
 async function toHtml(n, parent, opts, depth, ctx) {
-  const markup = await renderNode(n, parent, opts, depth, ctx);
+  const markup = cleanMarkup(await renderNode(n, parent, opts, depth, ctx));
   return opts.annotate ? markup.replace(/^(\s*<[a-z][\w-]*)(?=[\s>])/, (_, opening) => `${opening} data-layer="${esc(n.name)}" data-kind="${esc(n.type)}"`) : markup;
+}
+
+function cleanMarkup(markup) {
+  const rank = (token) => {
+    const t = token.replace(/^(?:sm:|md:|lg:|xl:|2xl:)/, '');
+    if (/^(relative|absolute|flex|grid|block|inline|items-|justify-|self-|order-|shrink-|grow|overflow-)/.test(t)) return 0;
+    if (/^(p[trblxy]?-|m[trblxy]?-|gap-)/.test(t)) return 1;
+    if (/^(w-|h-|min-|max-|aspect-)/.test(t)) return 2;
+    if (/^(font-|text-(?!\[?#)|leading-|tracking-|break-|whitespace-)/.test(t)) return 3;
+    if (/^(bg-|text-|border-)/.test(t)) return 4;
+    return 5;
+  };
+  return markup.replace(/class="([^"]*)"/g, (_, value) => `class="${[...new Set(value.split(/\s+/).filter(Boolean))].sort((a, b) => rank(a) - rank(b)).join(' ')}"`);
 }
 
 async function renderNode(n, parent, opts, depth, ctx) {
@@ -429,18 +481,37 @@ async function renderNode(n, parent, opts, depth, ctx) {
   if (VECTORS.includes(n.type) || isIcon(n)) return svgHtml(n, parent, opts, ind, isRoot, ctx);
 
   const sz = sizeClasses(n, parent, opts, isRoot);
-  const noAuto = opts.exact || !n.layoutMode || n.layoutMode === 'NONE';
   const kids = n.children || [];
-  const c = [...sz, ...(opts.exact ? [] : flexClasses(n, opts))];
-  const needsRel = (noAuto && kids.length) || kids.some((k) => k.layoutPositioning === 'ABSOLUTE');
+  const c = [...sz, ...(opts.exact ? [] : flexClasses(n, opts, isRoot))];
+  const needsRel = opts.exact || kids.some((k) => isOverlay(k, n));
   if (needsRel && !sz.includes('absolute') && !sz.includes('relative')) c.push('relative');
-  if (noAuto && kids.length && !sz.some((x) => /^h-\[|^h-full/.test(x))) c.push(`h-[${r(n.height)}px]`);
   const vis = await visualClasses(n, opts, ctx);
   c.push(...vis.cls);
-  const tag = tagFor(n, 0);
+  const tag = isRoot && tagFor(n, 0) === 'div' ? 'main' : tagFor(n, 0);
+  // Image-only layers are real, fluid images; image fills with text remain backgrounds.
+  if (!opts.exact && hasImage(n) && !kids.length) {
+    const paint = visible(n.fills).find((p) => p.type === 'IMAGE');
+    const key = paint.imageHash;
+    const imageClasses = c.filter((value) => !/^im\d+$/.test(value) && !['flex', 'flex-col', 'flex-row', 'items-stretch', 'justify-start', 'w-fit'].includes(value));
+    imageClasses.push('w-full', 'h-auto', 'object-cover');
+    return `${ind}<img class="${imageClasses.join(' ')}" src="${key && opts.images ? `__IMG_${key}__` : `https://placehold.co/${Math.round(n.width)}x${Math.round(n.height)}`}" width="${Math.round(n.width)}" height="${Math.round(n.height)}" alt="${esc(n.name)}">`;
+  }
   const out = [];
-  for (const ch of kids) { const h = await toHtml(ch, n, opts, depth + 1, ctx); if (h) out.push(h); }
-  const open = `<${tag} class="${c.join(' ')}"${vis.style.length ? ` style="${vis.style.join(';')}"` : ''}>`;
+  const plan = layoutPlan(n);
+  const rows = !opts.exact && plan.inferred && !repeatedItems(n) ? plan.rows : [kids.filter((child) => !isOverlay(child, n))];
+  for (const row of rows) {
+    const wrap = plan.inferred && rows.length > 1 && row.length > 1;
+    const contents = [];
+    for (const ch of row) { const h = await toHtml(ch, n, opts, depth + (wrap ? 2 : 1), ctx); if (h) contents.push(h); }
+    if (contents.length) out.push(wrap ? `${ind}  <div class="flex flex-col gap-6 md:flex-row">\n${contents.join('\n')}\n${ind}  </div>` : contents.join('\n'));
+  }
+  for (const ch of kids.filter((child) => isOverlay(child, n))) {
+    const h = await toHtml(ch, n, opts, depth + 1, ctx); if (h) out.push(h);
+  }
+  // Interactive elements cannot contain heading/paragraph controls or nested buttons.
+  const attrs = tag === 'button' ? ' type="button"' : tag === 'a' ? ' href="#"' : tag === 'input' ? ` type="${/email/i.test(n.name) ? 'email' : /search/i.test(n.name) ? 'search' : 'text'}" aria-label="${esc(n.name)}"` : '';
+  const open = `<${tag}${attrs} class="${c.join(' ')}"${vis.style.length ? ` style="${vis.style.join(';')}"` : ''}>`;
+  if (tag === 'input') return `${ind}${open}`;
   if (!out.length) return `${ind}${open}</${tag}>`;
   return `${ind}${open}\n${out.join('\n')}\n${ind}</${tag}>`;
 }
@@ -469,6 +540,14 @@ async function generate(opts) {
       const markup = await toHtml(n, null, multi ? { ...opts, responsive: false, annotate: true } : opts, 0, ctx);
       references.push({ name: n.name, width: Math.round(n.width), height: Math.round(n.height), html: markup });
     }
+    const counts = new Map(), colors = {};
+    const colorPattern = /(?:bg|text|border|outline|fill|stroke)-\[(#[0-9a-f]{6}|rgba\([^\]]+\))\]/gi;
+    for (const ref of references) for (const match of ref.html.matchAll(colorPattern)) counts.set(match[1], (counts.get(match[1]) || 0) + 1);
+    for (const [color, count] of counts) if (count > 1) colors['design-' + (Object.keys(colors).length + 1)] = color;
+    for (const ref of references) ref.html = ref.html.replace(colorPattern, (match, color) => {
+      const key = Object.keys(colors).find((key) => colors[key] === color);
+      return key ? match.slice(0, match.indexOf('-[')) + '-' + key : match;
+    });
     const desktop = references[references.length - 1];
     const fonts = {};
     Object.keys(ctx.fonts).forEach((f) => { fonts[f] = Array.from(ctx.fonts[f]).sort((a, b) => a - b); });
@@ -484,7 +563,7 @@ async function generate(opts) {
     const fontCss = Object.keys(fonts).map((f) => `.${slug(f)}{font-family:"${cssEsc(f)}",${/mono|code|courier/i.test(f) ? 'monospace' : (/serif|playfair|merriweather|lora|georgia|times|garamond|cormorant|bodoni/i.test(f) && !/sans/i.test(f)) ? 'serif' : 'sans-serif'}}`);
     if (imageCss.length || maskCss.length || fontCss.length) head += '<style>' + imageCss.concat(maskCss, fontCss).join('') + '</style>\n';
     lastGeneratedSelection = sel.slice();
-    figma.ui.postMessage({ type: 'result', html: head + desktop.html, fonts, images, sizes, width: desktop.width, height: desktop.height, responsive: !!opts.responsive, references: multi ? references : [] });
+    figma.ui.postMessage({ type: 'result', html: head + desktop.html, fonts, colors, images, sizes, width: desktop.width, height: desktop.height, responsive: !!opts.responsive, references: multi ? references : [] });
   } catch (e) {
     figma.ui.postMessage({ type: 'error', msg: String(e && e.stack ? e.stack : e) });
   }

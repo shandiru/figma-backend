@@ -78,7 +78,7 @@ test('one shared tree merges layout, inline paints, images, order and tablet siz
   const result = vm.runInContext('mergeResponsive(refs, ".im1{--im:url(__IMG_mobile__)}.im2{--im:url(__IMG_desktop__)}")', ctx);
   assert.equal((result.html.match(/Shared title/g) || []).length, 1);
   assert.equal((result.html.match(/<section/g) || []).length, 1);
-  assert.match(result.html, /max-w-\[1440px\]/);
+  assert.match(result.html, /max-w-7xl/);
   assert.doesNotMatch(result.html, /max-w-\[390px\]|data-layer|data-kind/);
   assert.match(result.html, /md:flex-row/);
   assert.match(result.html, /sm:text-/);
@@ -126,7 +126,7 @@ test('Figma selection exports sorted viewport references without screenshots or 
   assert.ok(result);
   assert.equal(result.width, 1440);
   assert.deepEqual(Array.from(result.references, (ref) => ref.width), [390, 1440]);
-  assert.equal((result.html.match(/<div/g) || []).length, 1);
+  assert.equal((result.html.match(/<main/g) || []).length, 1);
   await vm.runInContext('generate({ responsive: false, images: false, exact: true })', ctx);
   assert.equal(messages.at(-1).type, 'error');
 });
@@ -179,12 +179,12 @@ test('SVGs with different root colors are not deduplicated into one symbol', asy
 test('responsive typography scales line height and removes inherited duplicate classes', () => {
   const ctx = svgContext();
   const values = vm.runInContext('rspText(64, { responsive: true })', ctx);
-  assert.ok(values.includes('xl:text-[64px]'));
+  assert.ok(values.includes('text-4xl') && values.includes('lg:text-6xl'));
   assert.ok(!values.some((value) => value.startsWith('2xl:')));
   const switched = vm.runInContext('rspSwitch("flex-col", "flex-row")', ctx);
   assert.deepEqual(Array.from(switched), ['flex-col', 'lg:flex-row']);
   ctx.segment = { fontSize: 64, fontName: { family: 'Inter', style: 'Regular' }, fontWeight: 400, lineHeight: { unit: 'PIXELS', value: 72 }, fills: [] };
   const styles = vm.runInContext('segStyle(segment, {}, { responsive: true }, { fonts: {} })', ctx);
-  assert.ok(styles.cls.includes('leading-[39.6px]'));
-  assert.ok(styles.cls.includes('xl:leading-[72px]'));
+  assert.ok(styles.cls.includes('leading-[1.13]'));
+  assert.ok(!styles.cls.some((value) => /(?:sm|md|lg|xl):leading-/.test(value)));
 });
