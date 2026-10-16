@@ -15,6 +15,8 @@ npm.cmd run dev
 Import `backend/plugin/manifest.json` in Figma > Plugins > Development. The build also synchronizes the top-level `plugin/` copy.
 Open **Backend connection** in the plugin and set `http://localhost:3000` for local development, or your deployed backend HTTPS URL. The updated backend must be running for Generate and ZIP export.
 
+For Vercel, set the project Root Directory to `backend` when deploying the outer repository (or `.` when deploying the backend repository itself). Keep its `vercel.json`: `includeFiles` explicitly bundles Tailwind's runtime `lib/css/preflight.css` and the dashboard HTML. Redeploy after changing this configuration; an existing deployment will still have the old function bundle.
+
 ## Generate and download
 
 1. Select a desktop frame, or select matching mobile + desktop frames together. A tablet reference is optional (up to three different widths).
