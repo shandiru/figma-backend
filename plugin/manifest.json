@@ -4,17 +4,20 @@
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",
-  "editorType": ["figma"],
+  "editorType": [
+    "figma"
+  ],
   "documentAccess": "dynamic-page",
   "networkAccess": {
     "allowedDomains": [
-      "https://cdn.tailwindcss.com",
       "https://fonts.googleapis.com",
       "https://fonts.gstatic.com",
       "https://placehold.co",
       "https://*.vercel.app"
     ],
-    "devAllowedDomains": ["http://localhost:3000"],
-    "reasoning": "Tailwind, Google Fonts and placeholder images for preview. Configured backend receives generation/export activity and compiles export CSS if needed. Only optional AI cleanup sends screenshots. ZIP and formatter libraries are bundled locally."
+    "devAllowedDomains": [
+      "http://localhost:3000"
+    ],
+    "reasoning": "Express backend receives Figma markup, compiles Tailwind CSS, records progress and packages ZIP downloads. Google Fonts and placeholders support previews. Formatter is bundled."
   }
 }

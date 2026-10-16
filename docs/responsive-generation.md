@@ -1,6 +1,6 @@
 # Responsive generator change
 
-The default generator uses document flow for content. The explicit legacy Exact layout option remains a coordinate export. The backend AI prompt now follows the responsive layout policy instead of requiring fixed Figma dimensions.
+The default generator uses document flow for content. The explicit legacy Exact layout option remains a coordinate export. Express cleans the resulting HTML, compiles responsive CSS and creates the ZIP without external model services.
 
 These excerpts show the same sample hero, with inner typography and text shortened for readability. The browser check saves complete before/after markup in `test/artifacts/`.
 

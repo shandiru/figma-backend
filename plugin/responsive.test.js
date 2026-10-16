@@ -58,17 +58,25 @@ function context(fixtures = {}) {
   return ctx;
 }
 
-test('UI JavaScript parses; generation stays local and configured activity uses the backend', () => {
+test('UI JavaScript parses; Express compiles generation and packages exports without keys', () => {
   new vm.Script(script);
   const generate = script.slice(script.indexOf("  $('gen').onclick"), script.indexOf("  $('dbg').onclick"));
   const result = script.slice(script.indexOf("    if (m.type === 'result')"), script.indexOf('  function renderStats'));
-  assert.doesNotMatch(generate + result, /\bfetch\s*\(|\/api\//);
+  assert.match(result, /backendRequest\('\/api\/generate'/);
   assert.match(generate, /reportGeneration/);
   assert.match(result, /reportGeneration\('done'/);
   assert.match(script, /backendRequest\('\/api\/events'/);
   assert.doesNotMatch(ui, /<script src="https:\/\/cdn\.jsdelivr/);
-  assert.match(ui, /data-vendor="jszip"/);
-  assert.match(script, /\$\('ai'\)\.onclick = async/);
+  assert.match(script, /\/api\/export/);
+  assert.doesNotMatch(script, /pluginkey|\/api\/refine|\$\('ai'\)/);
+});
+
+test('phone and desktop card grids infer a two-column tablet without another frame', () => {
+  const ctx = context();
+  ctx.mobile = new Element('div', 'Cards', 'grid grid-cols-1');
+  ctx.desktop = new Element('div', 'Cards', 'grid grid-cols-3');
+  const classes = vm.runInContext('mergeClassMaps([classMap(mobile), classMap(desktop)], [0, 3])', ctx);
+  assert.match(classes, /grid-cols-1 md:grid-cols-2 lg:grid-cols-3/);
 });
 
 test('one shared tree merges layout, inline paints, images, order and tablet sizes', () => {

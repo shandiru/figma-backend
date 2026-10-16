@@ -518,7 +518,7 @@ async function renderNode(n, parent, opts, depth, ctx) {
 }
 
 const say = (msg) => figma.ui.postMessage({ type: 'progress', msg });
-let lastGeneratedSelection = [];
+
 
 async function generate(opts) {
   const sel = [...figma.currentPage.selection].sort((a, b) => a.width - b.width);
@@ -563,7 +563,6 @@ async function generate(opts) {
     const maskCss = Object.keys(ctx.maskKey).map((id) => `.${ctx.maskCls[id]}{background-image:url(__IMG_${ctx.maskKey[id]}__)}`);
     const fontCss = Object.keys(fonts).map((f) => `.${slug(f)}{font-family:"${cssEsc(f)}",${/mono|code|courier/i.test(f) ? 'monospace' : (/serif|playfair|merriweather|lora|georgia|times|garamond|cormorant|bodoni/i.test(f) && !/sans/i.test(f)) ? 'serif' : 'sans-serif'}}`);
     if (imageCss.length || maskCss.length || fontCss.length) head += '<style>' + imageCss.concat(maskCss, fontCss).join('') + '</style>\n';
-    lastGeneratedSelection = sel.slice();
     figma.ui.postMessage({ type: 'result', html: head + desktop.html, fonts, colors, images, sizes, width: desktop.width, height: desktop.height, responsive: !!opts.responsive, references: multi ? references : [] });
   } catch (e) {
     figma.ui.postMessage({ type: 'error', msg: String(e && e.stack ? e.stack : e) });
@@ -594,28 +593,19 @@ figma.ui.onmessage = async (m) => {
     sendSelection();
     if (figma.clientStorage) {
       const settings = await figma.clientStorage.getAsync('backend-settings').catch(() => null);
-      if (settings) figma.ui.postMessage({ type: 'backend-settings', settings });
+      if (settings) {
+        const clean = { url: String(settings.url || '').slice(0, 500), logging: settings.logging !== false };
+        await figma.clientStorage.setAsync('backend-settings', clean).catch(() => null);
+        figma.ui.postMessage({ type: 'backend-settings', settings: clean });
+      }
     }
   }
 
   if (m.type === 'debug') figma.ui.postMessage({ type: 'debug', json: JSON.stringify(figma.currentPage.selection.map((n) => dump(n, 0, false))) });
-  if (m.type === 'ai-screenshots') captureAiScreenshots();
   if (m.type === 'save-backend-settings' && figma.clientStorage && m.settings) {
     await figma.clientStorage.setAsync('backend-settings', {
-      url: String(m.settings.url || '').slice(0, 500), key: String(m.settings.key || '').slice(0, 500), logging: m.settings.logging !== false
+      url: String(m.settings.url || '').slice(0, 500), logging: m.settings.logging !== false
     }).catch(() => null);
   }
   if (m.type === 'open-dashboard' && typeof m.url === 'string' && /^https:\/\/[^\s]+$|^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/?$/.test(m.url)) figma.openExternal(m.url);
 };
-
-async function captureAiScreenshots() {
-  try {
-    if (!lastGeneratedSelection.length) throw new Error('Generate a design first.');
-    const screenshots = await Promise.all(lastGeneratedSelection.map(async (node) => {
-      if (node.removed) throw new Error('A generated frame was removed. Generate again.');
-      const bytes = await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: Math.max(0.1, Math.min(1, 1440 / node.width, 2400 / node.height)) } });
-      return { width: Math.round(node.width), height: Math.round(node.height), bytes };
-    }));
-    figma.ui.postMessage({ type: 'ai-screenshots', screenshots });
-  } catch (error) { figma.ui.postMessage({ type: 'ai-screenshots', error: error.message || String(error) }); }
-}

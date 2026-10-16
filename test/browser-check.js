@@ -10,7 +10,6 @@ const JSZip = require('jszip');
 const { sampleDesign, hydrate } = require('./sample-design');
 const cfg = require('../src/config');
 cfg.MONGODB_URI = '';
-cfg.PLUGIN_KEY = 'browser-test-key';
 const app = require('../src/app');
 
 async function main() {
@@ -53,7 +52,6 @@ async function main() {
     await page.setContent(fs.readFileSync('plugin/ui.html', 'utf8'), { waitUntil: 'load' });
     await page.locator('details > summary').click();
     await page.locator('#apiurl').fill(backend);
-    await page.locator('#pluginkey').fill(cfg.PLUGIN_KEY);
     await page.locator('#gen').click();
     const png = await page.evaluate(() => {
       const canvas = document.createElement('canvas'); canvas.width = 560; canvas.height = 360;
@@ -66,7 +64,7 @@ async function main() {
     await page.waitForFunction(() => !document.querySelector('#zip').disabled);
     await page.waitForFunction(() => document.querySelector('#prev').contentDocument.querySelector('style')?.textContent.includes('--tw-'));
     await page.evaluate(() => eventQueue);
-    let items = (await (await fetch(backend + '/api/logs', { headers: { 'x-plugin-key': cfg.PLUGIN_KEY } })).json()).items;
+    let items = (await (await fetch(backend + '/api/logs', {})).json()).items;
     assert.ok(items.some((item) => item.kind === 'generate' && item.status === 'done' && item.output.includes('<main')));
     let pendingDownload = page.waitForEvent('download');
     await page.locator('#zip').click();
@@ -83,11 +81,11 @@ async function main() {
     await page.locator('#zip').click();
     await (await pendingDownload).saveAs(path.join(out, 'design.zip'));
     await page.evaluate(() => eventQueue);
-    items = (await (await fetch(backend + '/api/logs', { headers: { 'x-plugin-key': cfg.PLUGIN_KEY } })).json()).items;
+    items = (await (await fetch(backend + '/api/logs', {})).json()).items;
     assert.equal(items.filter((item) => item.kind === 'export' && item.status === 'done').length, 2);
     const dashboard = await (await fetch(backend)).text();
-    assert.match(dashboard, /ZIP ready/);
-    assert.match(dashboard, /Responsive HTML ready/);
+    assert.match(dashboard, /Your design. Working code./);
+    assert.ok(items.some(item => item.stages.some(stage => stage.stage.includes('Compiling'))));
     const bytes = fs.readFileSync(path.join(out, 'design.zip'));
     const zip = await JSZip.loadAsync(Buffer.from(bytes));
     for (const name of ['index.html', 'tailwind.config.js', 'assets/images/photo.webp', 'assets/icons/i1.svg', 'assets/tailwind.css']) assert.ok(zip.file(name), name);
@@ -125,7 +123,19 @@ async function main() {
     }
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(out, 'measurements.json'), JSON.stringify(measurements, null, 2));
-    console.log('PASS: Download ZIP and Save ZIP produce real downloads with bundled libraries; missing preview CSS compiles on backend; Generate/ZIP appear in dashboard.');
+    await page.goto(backend);
+    await page.locator('#runs .run').first().waitFor();
+    await page.locator('#runs .run').first().click();
+    await page.locator('#code summary').click();
+    assert.match(await page.locator('#output').textContent(), /<html|<main/);
+    assert.ok(await page.locator('#stages li').count() >= 3);
+    for (const width of [1440, 375]) {
+      await page.setViewportSize({ width, height: 1000 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+      await page.screenshot({ path: path.join(out, `dashboard-${width}.png`), fullPage: true });
+    }
+    assert.deepEqual(errors, []);
+    console.log('PASS: Download ZIP and Save ZIP produce real downloads with bundled libraries; CSS and ZIP compile on backend without a key; Generate/ZIP appear in dashboard.');
     console.log('PASS: extracted ZIP opens from disk; WebP/SVG load; no horizontal scroll or overlap at 12 widths from 375 to 1920px.');
     console.log('Artifacts: test/artifacts/export/index.html, design.zip, before.html, after.html, preview-375.png, preview-1440.png');
   } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }

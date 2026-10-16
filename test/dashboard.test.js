@@ -8,7 +8,7 @@ test('dashboard, fix, logs and health still work', async () => {
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve) => server.once('listening', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
-  const headers = { 'x-plugin-key': cfg.PLUGIN_KEY, 'Content-Type': 'application/json' };
+  const headers = { 'Content-Type': 'application/json' };
   try {
     const fix = await fetch(base + '/api/fix', { method: 'POST', headers, body: JSON.stringify({ html: '<button class="p-[16px] p-4">Click</button>' }) });
     assert.equal(fix.status, 200);
@@ -16,7 +16,7 @@ test('dashboard, fix, logs and health still work', async () => {
     const dashboard = await fetch(base + '/');
     assert.equal(dashboard.status, 200);
     const html = await dashboard.text();
-    assert.match(html, /http-equiv="refresh" content="4"/);
+    assert.match(html, /updates every 2s/);
     assert.match(html, /View generated code/);
     const health = await fetch(base + '/api/health', { headers });
     assert.equal((await health.json()).ok, true);
@@ -31,9 +31,8 @@ test('dashboard, fix, logs and health still work', async () => {
     assert.equal(items.filter((item) => item.runId === event.runId).length, 1);
     assert.equal(items.find((item) => item.runId === event.runId).status, 'done');
     const live = await (await fetch(base + '/')).text();
-    assert.match(live, /Responsive HTML ready/);
-    assert.match(live, /Generated page/);
-    assert.equal((await fetch(base + '/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event) })).status, 401);
+    assert.match(live, /Your design. Working code./);
+    assert.equal((await fetch(base + '/api/events', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event) })).status, 200);
     const compile = await fetch(base + '/api/compile', { method: 'POST', headers, body: JSON.stringify({ html: '<main class="flex flex-col lg:flex-row text-design-1">Page</main>', theme: { colors: { 'design-1': '#172554' } } }) });
     assert.equal(compile.status, 200);
     const css = (await compile.json()).css;

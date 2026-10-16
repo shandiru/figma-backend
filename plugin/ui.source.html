@@ -118,23 +118,19 @@
     <button class="btn primary" id="gen"><span class="spin"></span><span id="genlabel">Generate</span></button>
   </div>
   <div class="aibar">
-    <span class="aitag">Local</span>
+    <span class="aitag">Express</span>
     <span>HTML + Tailwind</span>
     <span>One mobile-first layout. Resize the preview to check it.</span>
     <span class="spacer"></span>
-    <button class="btn ghost" id="undoai" disabled>Restore local code</button>
-    <button class="btn primary" id="ai" disabled>Enhance with AI</button>
   </div>
   <details class="aibar">
-    <summary>Backend connection &amp; optional AI settings</summary>
+    <summary>Backend connection</summary>
     <label for="apiurl">Backend URL</label><input class="inp grow" id="apiurl" value="https://figma-backend-xi.vercel.app" type="url">
-    <label for="pluginkey">Backend access key</label><input class="inp" id="pluginkey" type="password" autocomplete="off" placeholder="Your backend PLUGIN_KEY">
-    <label for="instructions">Cleanup instructions</label><input class="inp grow" id="instructions" maxlength="500" placeholder="e.g. simplify wrappers and improve tablet layout">
     <label><input id="logbackend" type="checkbox" checked> Show Generate / ZIP activity and code on backend dashboard</label>
     <button class="btn ghost" id="dashboard">Open dashboard</button>
-    <span>Backend access key enables logging and export compilation. GEMINI_API_KEY stays on your server.</span>
+    <span>Express compiles responsive CSS and packages your ZIP. No keys required.</span>
   </details>
-  <div class="aibar" role="status" aria-live="polite"><span id="pipeline-status">Ready to generate</span><span class="spacer"></span><span id="backend-status">Dashboard: enter backend access key in connection settings</span></div>
+  <div class="aibar" role="status" aria-live="polite"><span id="pipeline-status">Ready to generate</span><span class="spacer"></span><span id="backend-status">Dashboard ready ? Generate to start</span></div>
   <div id="err"></div>
 
   <div class="tabs">
@@ -183,7 +179,7 @@
   let skeleton = '', sprite = '', imgUrls = {}, frameW = 0, frameH = 0;
   let formattedPage = '';
   let references = [], mergePending = false;
-  let localSkeleton = '', generationReady = false, generatedResponsive = true, pendingScreenshots = null;
+  let generationReady = false, compiledCss = '';
   let generationRun = '', generationStarted = 0, eventQueue = Promise.resolve(), downloadUrl = '';
   const newRun = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
   function backendUrl() {
@@ -193,8 +189,8 @@
   }
   async function backendRequest(path, body) {
     const response = await fetch(backendUrl() + path, {
-      method: 'POST', signal: AbortSignal.timeout(15000),
-      headers: { 'Content-Type': 'application/json', 'x-plugin-key': $('pluginkey').value.trim() },
+      method: 'POST', signal: AbortSignal.timeout(path === '/api/events' ? 5000 : 60000),
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     const data = await response.json().catch(() => ({}));
@@ -204,7 +200,6 @@
   function reportActivity(kind, runId, phase, stage, extra = {}) {
     $('pipeline-status').textContent = stage;
     if (!$('logbackend').checked) { $('backend-status').textContent = 'Dashboard logging is off'; return; }
-    if (!$('pluginkey').value.trim()) { $('backend-status').textContent = 'Dashboard: enter backend access key in connection settings'; return; }
     $('backend-status').textContent = 'Dashboard: sending activity…';
     eventQueue = eventQueue.then(async () => {
       try {
@@ -219,9 +214,9 @@
     downloadUrl = ''; $('zip-save').hidden = true; $('zip-save').removeAttribute('href');
   }
   function saveConnection() {
-    parent.postMessage({ pluginMessage: { type: 'save-backend-settings', settings: { url: $('apiurl').value.trim(), key: $('pluginkey').value.trim(), logging: $('logbackend').checked } } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'save-backend-settings', settings: { url: $('apiurl').value.trim(), logging: $('logbackend').checked } } }, '*');
   }
-  for (const id of ['apiurl', 'pluginkey', 'logbackend']) $(id).addEventListener('change', saveConnection);
+  for (const id of ['apiurl', 'logbackend']) $(id).addEventListener('change', saveConnection);
   $('dashboard').onclick = () => {
     try { parent.postMessage({ pluginMessage: { type: 'open-dashboard', url: backendUrl() } }, '*'); }
     catch (error) { showErr(error.message); }
@@ -236,9 +231,6 @@
     if (!fam) return '';
     return '<link rel="preconnect" href="https://fonts.googleapis.com">\n  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n  <link href="https://fonts.googleapis.com/css2?' + fam + '&display=swap" rel="stylesheet">\n  ';
   }
-  function twConfig() {
-    return '<script>tailwind.config=' + JSON.stringify(configObject()).replace(/</g, '\\u003c') + '<\/script>\n  ';
-  }
   function configObject() {
     const fontFamily = Object.fromEntries(Object.keys(fonts).map((f) => [slugOf(f), [f, fallback(f)]]));
     return { content: ['./index.html'], theme: { extend: { colors, fontFamily } } };
@@ -248,14 +240,14 @@
     return prettier.format(source, { parser: 'html', plugins: prettierPlugins, tabWidth: 2, printWidth: 100, htmlWhitespaceSensitivity: 'ignore' });
   }
   function fullPage() {
-    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Design</title>\n  ' + fontLinks() + '<script src="https://cdn.tailwindcss.com"><\/script>\n  ' + twConfig() + '</head>\n<body class="m-0">\n' + html + '</body>\n</html>';
+    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Design</title>\n  ' + fontLinks() + '<style data-compiled>' + compiledCss + '</style>\n  ' + '</head>\n<body class="m-0">\n' + html + '</body>\n</html>';
   }
   function copy(text) {
     const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
   }
   let tt;
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1600); }
-  function setLoading(on, label) { document.body.classList.toggle('loading', on); $('gen').disabled = on; $('ai').disabled = on || !generationReady; $('undoai').disabled = on || !localSkeleton || skeleton === localSkeleton; $('genlabel').textContent = on ? (label || 'Generating...') : 'Generate'; }
+  function setLoading(on, label) { document.body.classList.toggle('loading', on); $('gen').disabled = on; $('genlabel').textContent = on ? (label || 'Generating...') : 'Generate'; }
   function showErr(m) { const e = $('err'); e.style.display = m ? 'block' : 'none'; e.textContent = m || ''; }
   // preview: always real device width la render panni, fit aaga scale pannum
   function layoutPreview() {
@@ -302,15 +294,13 @@
   $('copy').onclick = () => { copy(html); toast('Body HTML copied'); };
   $('copyfull').onclick = async () => { copy(await formatHtml(fullPage())); toast('Full page copied'); };
 
-  async function buildZip() {
-    if (!globalThis.JSZip) throw new Error('ZIP library has not loaded. Check your connection and retry.');
-    const zip = new JSZip();
-    zip.folder('assets/images'); zip.folder('assets/icons');
+  async function buildZip(runId) {
+    const assets = [];
     let page = fullPage();
     for (const [key, url] of Object.entries(imgUrls)) {
       if (!url.startsWith('data:image/webp;base64,')) throw new Error('An image could not be encoded as WebP. Regenerate with images enabled.');
       const name = 'assets/images/' + key.replace(/[^a-zA-Z0-9_-]/g, '-') + '.webp';
-      zip.file(name, url.split(',')[1], { base64: true });
+      assets.push({ path: name, content: url.split(',')[1] });
       page = page.split(url).join(name);
     }
     const doc = new DOMParser().parseFromString(page, 'text/html');
@@ -321,7 +311,7 @@
       for (const attr of symbol.attributes) if (attr.name !== 'id') svg.setAttribute(attr.name, attr.value);
       svg.innerHTML = symbol.innerHTML;
       const name = 'assets/icons/' + symbol.id + '.svg';
-      zip.file(name, new XMLSerializer().serializeToString(svg));
+      assets.push({ path: name, content: new XMLSerializer().serializeToString(svg) });
       for (const use of doc.querySelectorAll('use')) if (use.getAttribute('href') === '#' + symbol.id) {
         const original = use.parentElement;
         const img = doc.createElement('img');
@@ -331,30 +321,26 @@
       }
     }
     doc.querySelectorAll('svg[width="0"][height="0"]').forEach((el) => el.remove());
-    // Freeze the preview's compiled Tailwind stylesheet so the ZIP works offline.
-    const preview = $('prev').contentDocument;
-    let css = preview ? [...preview.querySelectorAll('style')].map((el) => el.textContent || [...(el.sheet?.cssRules || [])].map((rule) => rule.cssText).join('\n')).filter((text) => text.includes('--tw-')).join('\n') : '';
-    if (!css) {
-      if (!$('pluginkey').value.trim()) throw new Error('Preview CSS is unavailable. Enter the backend access key in connection settings to compile the ZIP, or wait for the styled preview.');
-      $('pipeline-status').textContent = 'Compiling Tailwind CSS on backend';
-      const compiled = await backendRequest('/api/compile', { html: skeleton, theme: configObject().theme.extend });
-      css = compiled.css;
-      if (typeof css !== 'string' || !css.includes('--tw-')) throw new Error('Backend returned no compiled Tailwind CSS.');
+    doc.querySelectorAll('style[data-compiled]').forEach((el) => el.remove());
+    const response = await fetch(backendUrl() + '/api/export', {
+      method: 'POST', signal: AbortSignal.timeout(60000),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId, html: await formatHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML), theme: configObject().theme.extend, assets })
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'ZIP export failed: HTTP ' + response.status);
     }
-    zip.file('assets/tailwind.css', css);
-    doc.querySelectorAll('script').forEach((el) => el.remove());
-    const link = doc.createElement('link'); link.rel = 'stylesheet'; link.href = 'assets/tailwind.css'; doc.head.appendChild(link);
-    zip.file('index.html', await formatHtml('<!DOCTYPE html>\n' + doc.documentElement.outerHTML));
-    zip.file('tailwind.config.js', 'const config = ' + JSON.stringify(configObject(), null, 2) + ';\nif (typeof module !== "undefined") module.exports = config;\nelse tailwind.config = config;\n');
-    zip.file('input.css', '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n');
-    return zip.generateAsync({ type: 'blob', mimeType: 'application/zip', compression: 'DEFLATE' });
+    return response.blob();
   }
   $('zip').onclick = async () => {
     const runId = newRun(), started = Date.now();
     try {
+      setLoading(true, 'Exporting ZIP...');
       $('zip').disabled = true; $('zip').textContent = 'Preparing ZIP…'; clearDownload();
       reportActivity('export', runId, 'started', 'Packaging HTML, theme, WebP and SVG assets');
-      const blob = await buildZip();
+      await eventQueue;
+      const blob = await buildZip(runId);
       downloadUrl = URL.createObjectURL(blob);
       const a = $('zip-save'); a.href = downloadUrl; a.hidden = false; a.click();
       reportActivity('export', runId, 'done', 'ZIP ready — Save ZIP link available', { ms: Date.now() - started });
@@ -362,7 +348,7 @@
     } catch (error) {
       showErr(error.message); reportActivity('export', runId, 'error', error.message, { ms: Date.now() - started });
     }
-    finally { $('zip').disabled = !generationReady; $('zip').textContent = 'Download ZIP'; }
+    finally { setLoading(false); $('zip').disabled = !generationReady; $('zip').textContent = 'Download ZIP'; }
   };
 
   // images: resize + webp compress (size romba kuraiyum)
@@ -377,9 +363,10 @@
         const cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(bmp.width * k)); cv.height = Math.max(1, Math.round(bmp.height * k));
         cv.getContext('2d').drawImage(bmp, 0, 0, cv.width, cv.height);
         let u = cv.toDataURL('image/webp', 0.72);
-        if (u.indexOf('data:image/webp') !== 0) u = cv.toDataURL('image/jpeg', 0.72);
+        bmp.close();
+        if (!u.startsWith('data:image/webp;')) throw new Error('WebP encoding is unavailable in this browser.');
         urls[h] = u;
-      } catch (e) { urls[h] = 'https://placehold.co/800x600'; }
+      } catch (e) { throw new Error('Image ' + h + ' could not be converted to WebP: ' + e.message); }
     }));
     return { str: str.replace(/__IMG_([A-Za-z0-9_-]+)__/g, (_, h) => urls[h] || ''), urls };
   }
@@ -452,6 +439,10 @@
         let active = 0;
         while (active + 1 < maps.length && starts[active + 1] <= i) active++;
         let value = maps[active].get(group) || defaultUtility(group);
+        // With phone + desktop references, give multi-column cards a usable tablet step.
+        // A supplied tablet reference always takes priority over this inference.
+        if (group === 'grid-cols' && maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && maps[0].get(group) === 'grid-cols-1' && /^grid-cols-(?:[3-9]|1[0-2])$/.test(maps[1].get(group) || '')) value = 'grid-cols-2';
+        if (group === 'grid-cols' && maps.length === 2 && active === 0 && i > 2 && starts[1] > i && previous === 'grid-cols-2') value = previous;
         // Inherit between measured layouts; do not manufacture classes at every breakpoint.
         if (value && value !== previous) output.push(VARIANTS[i] + value);
         previous = value;
@@ -537,19 +528,14 @@
     const m = e.data.pluginMessage; if (!m) return;
     if (m.type === 'backend-settings' && m.settings) {
       $('apiurl').value = m.settings.url || $('apiurl').value;
-      $('pluginkey').value = m.settings.key || '';
       $('logbackend').checked = m.settings.logging !== false;
-      $('backend-status').textContent = m.settings.key ? 'Dashboard configured — Generate to send activity' : 'Dashboard: enter backend access key in connection settings';
+      $('backend-status').textContent = 'Dashboard ready - Generate to send activity';
     }
     if (m.type === 'selection') {
       $('dot').classList.toggle('on', m.count > 0);
       $('sel').textContent = m.count === 0 ? 'No frame selected' : m.count === 1 ? m.names[0] : m.count + ' layers selected';
     }
     if (m.type === 'debug') { copy(m.json); toast('Layout debug copied (' + Math.round(m.json.length / 1024) + ' KB)'); }
-    if (m.type === 'ai-screenshots' && pendingScreenshots) {
-      const pending = pendingScreenshots; pendingScreenshots = null;
-      if (m.error) pending.reject(new Error(m.error)); else pending.resolve(m.screenshots || []);
-    }
     if (m.type === 'progress') { setLoading(true, m.msg); reportGeneration('progress', m.msg); }
     if (m.type === 'error') { setLoading(false); $('zip').disabled = !generationReady; showErr(m.msg); reportGeneration('error', m.msg); }
     if (m.type === 'result') {
@@ -559,7 +545,6 @@
       const packed = await packImages(m.html, m.images, m.sizes);
       html = packed.str; imgUrls = packed.urls; fonts = m.fonts || {}; colors = m.colors || {};
       references = m.references || [];
-      generatedResponsive = m.responsive !== false;
       mergePending = references.length > 1;
       // Keep assets as tokens while combining viewport layouts.
       skeleton = m.html; const sm = skeleton.match(SPRITE_RE);
@@ -579,10 +564,14 @@
         document.querySelectorAll('.dev').forEach((x) => x.classList.toggle('active', parseInt(x.dataset.w, 10) === frameW));
       }
       let fixMsg = '';
-      fixMsg = references.length ? 'Responsive layout combined locally — no API key' : 'Generated locally';
-      skeleton = await formatHtml(skeleton);
+      fixMsg = 'Responsive code compiled by Express';
+      reportGeneration('progress', 'Sending responsive markup to Express');
+      await eventQueue;
+      const result = await backendRequest('/api/generate', { runId: generationRun, html: skeleton, theme: configObject().theme.extend });
+      compiledCss = result.css;
+      skeleton = await formatHtml(result.html);
       html = await formatHtml(restoreHtml(skeleton));
-      localSkeleton = skeleton; generationReady = true;
+      generationReady = true;
       setLoading(false);
       $('empty').style.display = 'none';
       await refreshViews();
@@ -622,54 +611,6 @@
     const marker = /\{?\/?\*?\s*<!--SPRITE-->\s*\*?\/?\}?/;
     return marker.test(code) ? code.replace(marker, () => sprite) : sprite + code;
   }
-
-  // Only AI cleanup exports screenshots. Local generation can report activity.
-  function requestScreenshots() {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { pendingScreenshots = null; reject(new Error('Screenshot capture timed out. Generate again and retry.')); }, 20000);
-      pendingScreenshots = { resolve: (value) => { clearTimeout(timer); resolve(value); }, reject: (error) => { clearTimeout(timer); reject(error); } };
-      parent.postMessage({ pluginMessage: { type: 'ai-screenshots' } }, '*');
-    });
-  }
-  async function packScreenshot(bytes) {
-    const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/png' }));
-    try {
-      const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height;
-      const context = canvas.getContext('2d'); context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height); context.drawImage(bitmap, 0, 0);
-      return canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
-    } finally { bitmap.close(); }
-  }
-  $('ai').onclick = async () => {
-    if (!generationReady) return;
-    showErr(''); setLoading(true, 'AI cleanup...');
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 80000);
-    try {
-      const url = new URL($('apiurl').value.trim());
-      if (url.protocol !== 'https:' && !(url.protocol === 'http:' && url.hostname === 'localhost')) throw new Error('Use an HTTPS backend URL (or http://localhost:3000 for development).');
-      const screenshots = await requestScreenshots();
-      const packed = await Promise.all(screenshots.map(async (shot) => ({ width: shot.width, height: shot.height, screenshot: await packScreenshot(shot.bytes) })));
-      if (packed.length !== (references.length || 1)) throw new Error('The selected designs changed. Generate again before using AI.');
-      if (!references.length && (packed[0].width !== frameW || packed[0].height !== frameH)) throw new Error('Frame dimensions changed. Generate again.');
-      const viewportRefs = references.map((ref, i) => ({ name: ref.name, width: ref.width, height: ref.height, html: ref.html, screenshot: packed[i].screenshot }));
-      if (viewportRefs.some((ref, i) => ref.width !== packed[i].width || ref.height !== packed[i].height)) throw new Error('Frame dimensions changed. Generate again.');
-      const response = await fetch(url.href.replace(/\/+$/, '') + '/api/refine', {
-        method: 'POST', signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', 'x-plugin-key': $('pluginkey').value },
-        body: JSON.stringify({ html: skeleton, format: 'html', instructions: $('instructions').value.trim(), width: frameW, height: frameH, responsive: generatedResponsive, references: viewportRefs, screenshot: viewportRefs.length ? '' : packed[0].screenshot })
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'Backend returned HTTP ' + response.status);
-      if (data.truncated || !String(data.code || '').trim()) throw new Error('AI returned incomplete code. Your local code is preserved.');
-      const nextCode = await formatHtml(data.code);
-      const nextHtml = await formatHtml(restoreHtml(nextCode));
-      skeleton = nextCode; html = nextHtml;
-      await refreshViews(); toast('AI cleanup complete: ' + (data.model || 'Gemini'));
-    } catch (error) { showErr('AI cleanup failed: ' + (error.message || error) + '. Generated code is preserved.'); }
-    finally { clearTimeout(timer); setLoading(false); }
-  };
-  $('undoai').onclick = () => { skeleton = localSkeleton; html = restoreHtml(skeleton); refreshViews(); setLoading(false); showErr(''); toast('Local code restored'); };
-
 
   parent.postMessage({ pluginMessage: { type: 'ready' } }, '*');
 </script>

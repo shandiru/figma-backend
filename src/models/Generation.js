@@ -2,14 +2,13 @@ const mongoose = require('mongoose');
 
 const GenerationSchema = new mongoose.Schema(
   {
-    kind: { type: String, enum: ['fix', 'ai', 'generate', 'export'], default: 'ai' },
+    kind: { type: String, enum: ['fix', 'generate', 'export'], default: 'generate' },
     runId: { type: String, unique: true, sparse: true },
     status: String,
     stage: String,
     format: { type: String, enum: ['html', 'react'], default: 'html' },
     changes: Number,
-    model: String,
-    instructions: String,
+    stages: [{ stage: String, phase: String, at: Date }],
     inputChars: Number,
     outputChars: Number,
     ms: Number,
