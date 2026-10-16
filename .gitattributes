@@ -1,0 +1,2 @@
+# Vendor template strings are copied byte-for-byte into this generated artifact.
+plugin/ui.html linguist-generated=true whitespace=-blank-at-eol

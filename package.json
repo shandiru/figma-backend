@@ -8,6 +8,9 @@
     "node": ">=18"
   },
   "scripts": {
+    "build:plugin": "node plugin/build.js",
+    "pretest": "npm run build:plugin",
+    "pretest:browser": "npm run build:plugin",
     "test": "node --test plugin/responsive.test.js test/*.test.js",
     "test:browser": "node test/browser-check.js",
     "dev": "node --watch src/server.js",
@@ -17,12 +20,13 @@
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "express-rate-limit": "^7.5.0",
-    "mongoose": "^8.9.0"
+    "mongoose": "^8.9.0",
+    "postcss": "^8.5.30",
+    "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "jszip": "^3.10.2",
-    "prettier": "^3.9.10",
-    "tailwindcss": "^3.4.19"
+    "prettier": "^3.9.10"
   }
 }

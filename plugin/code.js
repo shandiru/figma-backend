@@ -34,7 +34,7 @@ const sp = (pre, v) => { v = r(v); const step = nearest(v, SP); return step !== 
 const TEXT_SCALE = { 12: 'xs', 14: 'sm', 16: 'base', 18: 'lg', 20: 'xl', 24: '2xl', 30: '3xl', 36: '4xl', 48: '5xl', 60: '6xl', 72: '7xl', 96: '8xl', 128: '9xl' };
 const textSize = (v) => { const step = nearest(v, TEXT_SCALE); return step ? `text-${step}` : `text-[${r(v)}px]`; };
 const maxWidth = (v) => { const step = nearest(v, { 320: 'xs', 384: 'sm', 448: 'md', 512: 'lg', 576: 'xl', 672: '2xl', 768: '3xl', 896: '4xl', 1024: '5xl', 1152: '6xl', 1280: '7xl' }); return step ? `max-w-${step}` : `max-w-[${r(v)}px]`; };
-// responsive value: mobile-first, then sm/md/lg/xl/2xl progressively restores desktop scale
+// Keep all preview breakpoints available; emit only meaningful layout changes.
 const BPS = ['', 'sm', 'md', 'lg', 'xl', '2xl'];
 const bp = (name, cls) => name ? `${name}:${cls}` : cls;
 function responsiveVariants(values) {
@@ -43,12 +43,12 @@ function responsiveVariants(values) {
 const rsp = (pre, v, opts, cfg) => {
   const o = Object.assign({ thr: 24, min: 0, factors: [0.5, 0.65, 0.78, 0.9, 1, 1] }, cfg || {});
   if (!opts.responsive || v < o.thr) return [sp(pre, v)];
-  return responsiveVariants(BPS.map((_, i) => sp(pre, Math.max(o.min, Math.round(v * o.factors[i])))));
+  return responsiveVariants([0, 0, 2, 4, 4, 4].map((index) => sp(pre, Math.max(o.min, Math.round(v * o.factors[index])))));
 };
 const rspText = (fs, opts) => {
   if (!opts.responsive || fs < 28) return [textSize(fs)];
   const factors = fs >= 40 ? [0.55, 0.65, 0.78, 0.9, 1, 1] : [0.75, 0.82, 0.9, 0.96, 1, 1];
-  return responsiveVariants(factors.map((factor) => textSize(fs * factor)));
+  return responsiveVariants([0, 0, 2, 4, 4, 4].map((index) => textSize(fs * factors[index])));
 };
 const rspSwitch = (smallCls, largeCls) => responsiveVariants(BPS.map((_, i) => i < 3 ? smallCls : largeCls));
 const WNAME = { 100: 'thin', 200: 'extralight', 300: 'light', 400: 'normal', 500: 'medium', 600: 'semibold', 700: 'bold', 800: 'extrabold', 900: 'black' };
@@ -503,7 +503,8 @@ async function renderNode(n, parent, opts, depth, ctx) {
     const wrap = plan.inferred && rows.length > 1 && row.length > 1;
     const contents = [];
     for (const ch of row) { const h = await toHtml(ch, n, opts, depth + (wrap ? 2 : 1), ctx); if (h) contents.push(h); }
-    if (contents.length) out.push(wrap ? `${ind}  <div class="flex flex-col gap-6 md:flex-row">\n${contents.join('\n')}\n${ind}  </div>` : contents.join('\n'));
+    const rowAttrs = opts.annotate ? ` data-layer="Layout row ${rows.indexOf(row) + 1}" data-kind="INFERRED_ROW"` : '';
+    if (contents.length) out.push(wrap ? `${ind}  <div${rowAttrs} class="flex flex-col gap-6 md:flex-row">\n${contents.join('\n')}\n${ind}  </div>` : contents.join('\n'));
   }
   for (const ch of kids.filter((child) => isOverlay(child, n))) {
     const h = await toHtml(ch, n, opts, depth + 1, ctx); if (h) out.push(h);
@@ -587,15 +588,24 @@ function sendSelection() {
   figma.ui.postMessage({ type: 'selection', count: sel.length, names: sel.map((n) => n.name) });
 }
 figma.on('selectionchange', sendSelection);
-figma.ui.onmessage = (m) => {
+figma.ui.onmessage = async (m) => {
   if (m.type === 'generate') generate(m.opts);
   if (m.type === 'ready') {
     sendSelection();
-
+    if (figma.clientStorage) {
+      const settings = await figma.clientStorage.getAsync('backend-settings').catch(() => null);
+      if (settings) figma.ui.postMessage({ type: 'backend-settings', settings });
+    }
   }
 
   if (m.type === 'debug') figma.ui.postMessage({ type: 'debug', json: JSON.stringify(figma.currentPage.selection.map((n) => dump(n, 0, false))) });
   if (m.type === 'ai-screenshots') captureAiScreenshots();
+  if (m.type === 'save-backend-settings' && figma.clientStorage && m.settings) {
+    await figma.clientStorage.setAsync('backend-settings', {
+      url: String(m.settings.url || '').slice(0, 500), key: String(m.settings.key || '').slice(0, 500), logging: m.settings.logging !== false
+    }).catch(() => null);
+  }
+  if (m.type === 'open-dashboard' && typeof m.url === 'string' && /^https:\/\/[^\s]+$|^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?\/?$/.test(m.url)) figma.openExternal(m.url);
 };
 
 async function captureAiScreenshots() {

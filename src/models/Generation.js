@@ -2,7 +2,10 @@ const mongoose = require('mongoose');
 
 const GenerationSchema = new mongoose.Schema(
   {
-    kind: { type: String, enum: ['fix', 'ai'], default: 'ai' },
+    kind: { type: String, enum: ['fix', 'ai', 'generate', 'export'], default: 'ai' },
+    runId: { type: String, unique: true, sparse: true },
+    status: String,
+    stage: String,
     format: { type: String, enum: ['html', 'react'], default: 'html' },
     changes: Number,
     model: String,

@@ -53,3 +53,21 @@ test('unnamed coordinate cards form one grid without row wrappers', async () => 
   assert.equal((html.match(/<div /g) || []).length, 6);
   assert.doesNotMatch(html, /class="[^"]*\babsolute\b/);
 });
+
+test('inferred row wrappers are annotated for matching multiple viewport references', async () => {
+  const { ctx, messages } = generator();
+  const design = (width) => hydrate(node('Page', width, 500, [
+    text('Title', 'Shared title', 36, { y: 0 }),
+    text('Left', 'Left content', 16, { y: 140, x: 0 }),
+    text('Right', 'Right content', 16, { y: 140, x: width / 2 }),
+  ]));
+  ctx.figma.currentPage.selection = [design(390), design(1440)];
+  await vm.runInContext('generate({ responsive: true, images: false })', ctx);
+  const result = messages.find((message) => message.type === 'result');
+  assert.ok(result);
+  for (const reference of result.references) {
+    assert.match(reference.html, /data-kind="INFERRED_ROW"/);
+    assert.match(reference.html, /Left content/);
+    assert.match(reference.html, /Right content/);
+  }
+});

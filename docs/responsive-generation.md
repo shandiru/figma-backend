@@ -19,9 +19,9 @@ Before:
 After:
 
 ```html
-<section class="flex flex-col lg:flex-row gap-10 sm:gap-12 md:gap-16 xl:gap-20 min-w-0 w-full max-w-6xl">
-  <section class="flex flex-col gap-3 sm:gap-4 md:gap-5 xl:gap-6 min-w-0 w-full max-w-full">
-    <h1 class="text-3xl sm:text-4xl md:text-5xl xl:text-6xl font-inter font-bold leading-tight text-design-1">
+<section class="flex flex-col lg:flex-row gap-10 md:gap-16 lg:gap-20 min-w-0 w-full max-w-6xl">
+  <section class="flex flex-col gap-3 md:gap-5 lg:gap-6 min-w-0 w-full max-w-full">
+    <h1 class="text-3xl md:text-5xl lg:text-6xl font-inter font-bold leading-tight text-design-1">
       Build something remarkable
     </h1>
     <!-- description and button -->

@@ -5,7 +5,8 @@ const vm = require('node:vm');
 const path = require('node:path');
 
 const ui = fs.readFileSync(path.join(__dirname, 'ui.html'), 'utf8');
-const script = ui.slice(ui.indexOf('<script>') + 8, ui.lastIndexOf('</script>'));
+const appStart = '<script id="plugin-app">';
+const script = ui.slice(ui.indexOf(appStart) + appStart.length, ui.lastIndexOf('</script>'));
 const helpers = script.slice(script.indexOf('  const VIEWPORTS'), script.indexOf('  onmessage ='));
 
 // Small DOM fixture for exercising the merge independently of Figma or network access.
@@ -57,12 +58,16 @@ function context(fixtures = {}) {
   return ctx;
 }
 
-test('UI JavaScript parses and only the optional AI button calls the backend', () => {
+test('UI JavaScript parses; generation stays local and configured activity uses the backend', () => {
   new vm.Script(script);
   const generate = script.slice(script.indexOf("  $('gen').onclick"), script.indexOf("  $('dbg').onclick"));
   const result = script.slice(script.indexOf("    if (m.type === 'result')"), script.indexOf('  function renderStats'));
   assert.doesNotMatch(generate + result, /\bfetch\s*\(|\/api\//);
-  assert.equal((script.match(/\bfetch\s*\(/g) || []).length, 1);
+  assert.match(generate, /reportGeneration/);
+  assert.match(result, /reportGeneration\('done'/);
+  assert.match(script, /backendRequest\('\/api\/events'/);
+  assert.doesNotMatch(ui, /<script src="https:\/\/cdn\.jsdelivr/);
+  assert.match(ui, /data-vendor="jszip"/);
   assert.match(script, /\$\('ai'\)\.onclick = async/);
 });
 
@@ -81,7 +86,7 @@ test('one shared tree merges layout, inline paints, images, order and tablet siz
   assert.match(result.html, /max-w-7xl/);
   assert.doesNotMatch(result.html, /max-w-\[390px\]|data-layer|data-kind/);
   assert.match(result.html, /md:flex-row/);
-  assert.match(result.html, /sm:text-/);
+  assert.doesNotMatch(result.html, /sm:text-/);
   assert.match(result.html, /lg:text-\[64px\]/);
   assert.match(result.html, /@media\(min-width:768px\).*color:green/);
   assert.match(result.html, /@media\(min-width:1024px\).*__IMG_desktop__/);

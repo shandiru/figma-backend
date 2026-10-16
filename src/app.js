@@ -7,6 +7,7 @@ const { fixHtml } = require('./fixer');
 const { parseReferences } = require('./references');
 const { connect, enabled: dbEnabled } = require('./db');
 const Generation = require('./models/Generation');
+const { compileCss, exportTheme } = require('./compile');
 
 const app = express();
 app.set('trust proxy', 1);
@@ -45,9 +46,10 @@ function startLog(doc) {
 }
 
 async function finishLog(entry, doc) {
-  const finalDoc = { ...entry, ...doc, ok: doc.ok === false ? false : true, status: doc.ok === false ? 'error' : 'done', updatedAt: new Date() };
+  const finalDoc = { ...entry, ...doc, runId: entry._id, ok: doc.ok === false ? false : true, status: doc.ok === false ? 'error' : 'done', updatedAt: new Date() };
   upsertMemoryLog(finalDoc);
-  const work = (async () => { if (await connect()) await Generation.create(doc); })().catch((e) => console.error('DB log failed:', e.message));
+  const { _id, ...persistDoc } = finalDoc;
+  const work = (async () => { if (await connect()) await Generation.create(persistDoc); })().catch((e) => console.error('DB log failed:', e.message));
   await Promise.race([work, new Promise((r) => setTimeout(r, 1500))]);
 }
 
@@ -69,13 +71,21 @@ async function status() {
 
 async function recentLogs(limit = 25, includeOutput = true) {
   const fallback = () => memoryLogs.slice(0, Math.min(limit, 100)).map((x) => (includeOutput ? x : { ...x, output: undefined }));
+  const merge = (items) => {
+    const entries = new Map();
+    for (const entry of [...items, ...fallback()]) {
+      const key = entry.runId || String(entry._id), previous = entries.get(key);
+      if (!previous || new Date(entry.updatedAt || entry.createdAt) >= new Date(previous.updatedAt || previous.createdAt)) entries.set(key, entry);
+    }
+    return [...entries.values()].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)).slice(0, Math.min(limit, 100));
+  };
   return Promise.race([
     (async () => {
       if (!(await connect())) return fallback();
       const query = Generation.find({}, includeOutput ? undefined : '-output');
       const items = await query.sort({ createdAt: -1 }).limit(Math.min(limit, 100)).lean();
-      return items.length ? items : fallback();
-    })(),
+      return merge(items);
+    })().catch(() => fallback()),
     timeout(2500, fallback())
   ]);
 }
@@ -114,7 +124,7 @@ app.get('/', async (req, res) => {
             <td>${esc(x.model || '-')}</td>
             <td>${esc(x.ms || 0)} ms</td>
             <td>${esc(x.inputChars || 0)} -> ${esc(x.outputChars || 0)}</td>
-            <td>${esc(x.error || x.instructions || '-')}</td>
+            <td>${esc(x.error || x.stage || x.instructions || '-')}</td>
             <td>${codePreview(x)}</td>
           </tr>`).join('')
         : '<tr><td colspan="9">No logs yet. Figma plugin-la Generate or Enhance AI click pannunga.</td></tr>';
@@ -153,7 +163,7 @@ app.get('/', async (req, res) => {
 <body>
   <main>
     <h1>Design to Tailwind Backend</h1>
-    <div class="muted">Figma plugin Generate / Enhance AI process logs. Page auto-refreshes every 4 seconds.</div>
+    <div class="muted">Generate, ZIP export and AI activity. Page auto-refreshes every 4 seconds. Enable dashboard logging in the plugin and enter your backend access key.</div>
     ${error ? `<div class="error">${esc(error)}</div>` : ''}
     <section class="grid">
       <div class="card"><div class="label">API</div><div class="value good">online</div></div>
@@ -173,6 +183,39 @@ app.get('/', async (req, res) => {
 
 app.get('/api/health', auth, async (_req, res) => {
   res.json(await status());
+});
+
+// Local generation is independent of the API. These authenticated events make
+// its actual stages and generated code visible on the existing live dashboard.
+app.post('/api/events', auth, async (req, res) => {
+  const { runId, kind, phase, stage, output, ms } = req.body || {};
+  if (typeof runId !== 'string' || !/^[a-zA-Z0-9-]{8,100}$/.test(runId) || !['generate', 'export'].includes(kind) || !['started', 'progress', 'done', 'error'].includes(phase)) return res.status(400).json({ error: 'Invalid activity event' });
+  if (output !== undefined && (typeof output !== 'string' || output.length > 350000)) return res.status(400).json({ error: 'Activity output exceeds 350000 characters' });
+  const id = 'plugin-' + runId;
+  const previous = memoryLogs.find((entry) => entry._id === id);
+  const timestamp = new Date();
+  const doc = { runId, kind, format: 'html', stage: String(stage || phase).slice(0, 500),
+    status: phase === 'error' ? 'error' : phase === 'done' ? 'done' : 'processing',
+    ok: phase === 'error' ? false : phase === 'done' ? true : null,
+    ...(output !== undefined ? { output, outputChars: output.length } : {}),
+    ...(Number.isFinite(ms) && ms >= 0 ? { ms } : {}), updatedAt: timestamp };
+  upsertMemoryLog({ ...previous, ...doc, _id: id, createdAt: previous ? previous.createdAt : timestamp });
+  // Upsert stages too: Vercel requests can reach different warm instances.
+  const persist = (async () => { if (await connect()) await Generation.findOneAndUpdate({ runId }, { $set: doc, $setOnInsert: { createdAt: timestamp } }, { upsert: true, runValidators: true }); })().catch((error) => console.error('Activity log failed:', error.message));
+  await Promise.race([persist, timeout(1500)]);
+  res.json({ ok: true, runId });
+});
+
+// Compile from the current markup, never from whatever happened to load in an
+// iframe. No AI key or preview CDN is needed for this export fallback.
+app.post('/api/compile', auth, limiter(10, 'Export limit reached. Wait a minute.'), async (req, res) => {
+  const { html, theme } = req.body || {};
+  if (typeof html !== 'string' || !html.trim() || html.length > 350000) return res.status(400).json({ error: 'Export needs HTML under 350000 characters' });
+  let safeTheme;
+  try { safeTheme = exportTheme(theme); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
+  try { res.json({ css: await compileCss(html, safeTheme) }); }
+  catch (error) { res.status(500).json({ error: 'Tailwind compilation failed: ' + error.message }); }
 });
 
 // ---- default path: rule-based fix (no AI) ----

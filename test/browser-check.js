@@ -8,6 +8,10 @@ const { chromium } = require('@playwright/test');
 const prettier = require('prettier');
 const JSZip = require('jszip');
 const { sampleDesign, hydrate } = require('./sample-design');
+const cfg = require('../src/config');
+cfg.MONGODB_URI = '';
+cfg.PLUGIN_KEY = 'browser-test-key';
+const app = require('../src/app');
 
 async function main() {
   const out = path.resolve('test/artifacts');
@@ -34,20 +38,23 @@ async function main() {
   execFileSync(process.execPath, ['node_modules/tailwindcss/lib/cli.js', '-c', path.join(out, 'compile.config.json'), '-i', path.join(out, 'input.css'), '-o', path.join(out, 'compiled.css')]);
   const css = fs.readFileSync(path.join(out, 'compiled.css'), 'utf8');
   const browser = await chromium.launch({ channel: process.env.BROWSER_CHANNEL || 'chrome', headless: true });
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise((resolve) => server.once('listening', resolve));
+  const backend = `http://127.0.0.1:${server.address().port}`;
   try {
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.route('https://**/*', async (route) => {
       const url = route.request().url();
-      const local = url.includes('standalone.js') ? 'node_modules/prettier/standalone.js'
-        : url.includes('plugins/html.js') ? 'node_modules/prettier/plugins/html.js'
-        : url.includes('jszip.min.js') ? 'node_modules/jszip/dist/jszip.min.js' : null;
-      if (local) return route.fulfill({ contentType: 'application/javascript', body: fs.readFileSync(local, 'utf8') });
       if (url.includes('cdn.tailwindcss.com')) return route.fulfill({ contentType: 'application/javascript', body: 'window.tailwind={};const style=document.createElement("style");style.textContent=' + JSON.stringify(css) + ';document.head.appendChild(style);' });
       return route.abort();
     });
     await page.setContent(fs.readFileSync('plugin/ui.html', 'utf8'), { waitUntil: 'load' });
+    await page.locator('details > summary').click();
+    await page.locator('#apiurl').fill(backend);
+    await page.locator('#pluginkey').fill(cfg.PLUGIN_KEY);
+    await page.locator('#gen').click();
     const png = await page.evaluate(() => {
       const canvas = document.createElement('canvas'); canvas.width = 560; canvas.height = 360;
       const c = canvas.getContext('2d'); c.fillStyle = '#bfdbfe'; c.fillRect(0, 0, 560, 360);
@@ -58,8 +65,30 @@ async function main() {
     await page.evaluate((payload) => { payload.images.photo = new Uint8Array(payload.images.photo); window.postMessage({ pluginMessage: payload }, '*'); }, result);
     await page.waitForFunction(() => !document.querySelector('#zip').disabled);
     await page.waitForFunction(() => document.querySelector('#prev').contentDocument.querySelector('style')?.textContent.includes('--tw-'));
-    const bytes = await page.evaluate(async () => Array.from(new Uint8Array(await (await buildZip()).arrayBuffer())));
-    fs.writeFileSync(path.join(out, 'design.zip'), Buffer.from(bytes));
+    await page.evaluate(() => eventQueue);
+    let items = (await (await fetch(backend + '/api/logs', { headers: { 'x-plugin-key': cfg.PLUGIN_KEY } })).json()).items;
+    assert.ok(items.some((item) => item.kind === 'generate' && item.status === 'done' && item.output.includes('<main')));
+    let pendingDownload = page.waitForEvent('download');
+    await page.locator('#zip').click();
+    await (await pendingDownload).saveAs(path.join(out, 'design-preview.zip'));
+    assert.equal(await page.locator('#zip-save').isVisible(), true);
+    // A real user click must work after async preparation, too.
+    pendingDownload = page.waitForEvent('download');
+    await page.locator('#zip-save').click();
+    await (await pendingDownload).saveAs(path.join(out, 'design-save-link.zip'));
+    assert.deepEqual(fs.readFileSync(path.join(out, 'design-preview.zip')), fs.readFileSync(path.join(out, 'design-save-link.zip')));
+    // Exercise the failure users saw: no stylesheet ever loaded in the preview.
+    await page.evaluate(() => document.querySelector('#prev').contentDocument.querySelectorAll('style').forEach((el) => el.remove()));
+    pendingDownload = page.waitForEvent('download');
+    await page.locator('#zip').click();
+    await (await pendingDownload).saveAs(path.join(out, 'design.zip'));
+    await page.evaluate(() => eventQueue);
+    items = (await (await fetch(backend + '/api/logs', { headers: { 'x-plugin-key': cfg.PLUGIN_KEY } })).json()).items;
+    assert.equal(items.filter((item) => item.kind === 'export' && item.status === 'done').length, 2);
+    const dashboard = await (await fetch(backend)).text();
+    assert.match(dashboard, /ZIP ready/);
+    assert.match(dashboard, /Responsive HTML ready/);
+    const bytes = fs.readFileSync(path.join(out, 'design.zip'));
     const zip = await JSZip.loadAsync(Buffer.from(bytes));
     for (const name of ['index.html', 'tailwind.config.js', 'assets/images/photo.webp', 'assets/icons/i1.svg', 'assets/tailwind.css']) assert.ok(zip.file(name), name);
     const image = await zip.file('assets/images/photo.webp').async('nodebuffer');
@@ -73,7 +102,7 @@ async function main() {
     await page.goto(pathToFileURL(path.join(out, 'export/index.html')).href);
     await page.waitForFunction(() => [...document.images].every((img) => img.complete && img.naturalWidth > 0));
     const measurements = [];
-    for (const width of [375, 640, 768, 1024, 1280, 1440]) {
+    for (const width of [375, 639, 640, 767, 768, 1023, 1024, 1279, 1280, 1440, 1536, 1920]) {
       await page.setViewportSize({ width, height: 1000 });
       const value = await page.evaluate(() => {
         const root = document.querySelector('main');
@@ -96,8 +125,9 @@ async function main() {
     }
     assert.deepEqual(errors, []);
     fs.writeFileSync(path.join(out, 'measurements.json'), JSON.stringify(measurements, null, 2));
-    console.log('PASS: ZIP opens from disk; WebP/SVG load; no horizontal scroll or sibling overlap at 375, 640, 768, 1024, 1280, 1440px.');
+    console.log('PASS: Download ZIP and Save ZIP produce real downloads with bundled libraries; missing preview CSS compiles on backend; Generate/ZIP appear in dashboard.');
+    console.log('PASS: extracted ZIP opens from disk; WebP/SVG load; no horizontal scroll or overlap at 12 widths from 375 to 1920px.');
     console.log('Artifacts: test/artifacts/export/index.html, design.zip, before.html, after.html, preview-375.png, preview-1440.png');
-  } finally { await browser.close(); }
+  } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }
 }
 main().catch((error) => { console.error(error); process.exitCode = 1; });
