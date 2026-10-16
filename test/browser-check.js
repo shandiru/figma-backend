@@ -7,7 +7,7 @@ const { execFileSync } = require('node:child_process');
 const { chromium } = require('@playwright/test');
 const prettier = require('prettier');
 const JSZip = require('jszip');
-const { sampleDesign, hydrate } = require('./sample-design');
+const { sampleDesign, hydrate, node, text, solid } = require('./sample-design');
 const cfg = require('../src/config');
 cfg.MONGODB_URI = '';
 const app = require('../src/app');
@@ -18,6 +18,7 @@ async function verifyReferencePair(browser, backend, out) {
   desktop.type = 'INSTANCE';
   mobile.children[1].layoutMode = 'VERTICAL';
   mobile.children[1].width = 358;
+  mobile.children[2].layoutMode = 'VERTICAL';
   desktop.children[1].layoutMode = 'HORIZONTAL';
   mobile.children[1].children[0].children[0].segments[0].fontSize = 32;
   mobile.children[1].children[0].children[0].fontSize = 32;
@@ -74,6 +75,46 @@ async function verifyReferencePair(browser, backend, out) {
   await page.screenshot({ path: path.join(out, 'paired-plugin.png'), fullPage: true });
   await page.close();
   console.log('PASS: separate mobile component + desktop instance capture, renamed layers, tablet typography, XL container and ZIP.');
+}
+
+async function verifyMeasuredDesign(browser, backend, out, png) {
+  const label = text('Label', 'Accurate design', 19, { width: 200, height: 25, layoutSizingHorizontal: 'FIXED' });
+  label.segments[0].lineHeight.value = 25;
+  const logo = node('Mark', 31, 31, [], { type: 'RECTANGLE', cornerRadius: 7, fills: solid('172554') });
+  const header = node('Header', 835, 53, [logo, label], { layoutMode: 'HORIZONTAL', itemSpacing: 17, paddingLeft: 13, paddingRight: 13, counterAxisAlignItems: 'CENTER' });
+  const image = node('Photo', 147, 83, [], { fills: [{ type: 'IMAGE', imageHash: 'photo', scaleMode: 'FILL' }] });
+  const panel = node('Panel', 835, 211, [image], { layoutMode: 'HORIZONTAL', paddingLeft: 21, paddingTop: 21, cornerRadius: 13, fills: solid('dbeafe') });
+  const design = hydrate(node('Page', 901, 500, [header, panel], { layoutMode: 'VERTICAL', layoutSizingVertical: 'FIXED', paddingLeft: 37, paddingRight: 29, paddingTop: 19, paddingBottom: 23, itemSpacing: 17, counterAxisAlignItems: 'MIN' }));
+  const messages = [];
+  const ctx = vm.createContext({ __html__: '', figma: { showUI() {}, on() {}, currentPage: { selection: [design] }, ui: { postMessage: message => messages.push(message) }, getImageByHash: () => ({ getBytesAsync: async () => new Uint8Array(Buffer.from(png, 'base64')) }) } });
+  vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
+  await vm.runInContext('generate({ responsive: true, images: true })', ctx);
+  const payload = messages.find(message => message.type === 'result');
+  assert.ok(payload, JSON.stringify(messages));
+  const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
+  await page.route('https://**/*', route => route.abort());
+  await page.setContent(fs.readFileSync('plugin/ui.html', 'utf8'));
+  await page.locator('details > summary').click();
+  await page.locator('#apiurl').fill(backend);
+  await page.locator('#gen').click();
+  await page.evaluate(result => window.postMessage({ pluginMessage: result }, '*'), payload);
+  await page.waitForFunction(() => !document.querySelector('#zip').disabled);
+  const actual = await page.locator('#prev').evaluate(frame => {
+    const doc = frame.contentDocument, root = doc.querySelector('main'), header = doc.querySelector('header'), panel = root.children[1], logo = header.children[0], label = header.children[1], image = panel.querySelector('img');
+    const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; };
+    return { root: box(root), header: box(header), panel: box(panel), logo: box(logo), label: box(label), image: box(image), fontSize: getComputedStyle(label).fontSize, lineHeight: getComputedStyle(label).lineHeight, radius: getComputedStyle(logo).borderRadius };
+  });
+  assert.deepEqual(actual.root, { x: 0, y: 0, width: 901, height: 500 });
+  assert.deepEqual(actual.header, { x: 37, y: 19, width: 835, height: 53 });
+  assert.deepEqual(actual.logo, { x: 50, y: 30, width: 31, height: 31 });
+  assert.deepEqual(actual.label, { x: 98, y: 33, width: 200, height: 25 });
+  assert.deepEqual(actual.panel, { x: 37, y: 89, width: 835, height: 211 });
+  assert.deepEqual(actual.image, { x: 58, y: 110, width: 147, height: 83 });
+  assert.equal(actual.fontSize, '19px'); assert.equal(actual.lineHeight, '25px'); assert.equal(actual.radius, '7px');
+  fs.writeFileSync(path.join(out, 'accuracy-measurements.json'), JSON.stringify(actual, null, 2));
+  await page.screenshot({ path: path.join(out, 'accuracy-plugin.png'), fullPage: true });
+  await page.close();
+  console.log('PASS: original positions, 17px gaps, asymmetric padding, fixed sizes, image crop box, 19px text, 25px leading and 7px radius match exactly.');
 }
 
 async function main() {
@@ -164,7 +205,7 @@ async function main() {
     await page.goto(pathToFileURL(path.join(out, 'export/index.html')).href);
     await page.waitForFunction(() => [...document.images].every((img) => img.complete && img.naturalWidth > 0));
     const measurements = [];
-    for (const width of [375, 639, 640, 767, 768, 1023, 1024, 1279, 1280, 1440, 1536, 1920]) {
+    for (const width of [1440, 1920]) {
       await page.setViewportSize({ width, height: 1000 });
       const value = await page.evaluate(() => {
         const root = document.querySelector('main');
@@ -180,8 +221,7 @@ async function main() {
       assert.ok(value.scrollWidth <= width, JSON.stringify(value));
       assert.equal(value.siblingOverlap, false, JSON.stringify(value));
       assert.equal(value.heroOverlap, false, JSON.stringify(value));
-      assert.equal(value.direction, width >= 1024 ? 'row' : 'column');
-      assert.equal(value.columns, width >= 1024 ? 3 : width >= 768 ? 2 : 1);
+      assert.equal(value.direction, 'row');
       measurements.push(value);
       if ([375, 1440].includes(width)) await page.screenshot({ path: path.join(out, `preview-${width}.png`), fullPage: true });
     }
@@ -200,8 +240,9 @@ async function main() {
     }
     assert.deepEqual(errors, []);
     await verifyReferencePair(browser, backend, out);
+    await verifyMeasuredDesign(browser, backend, out, png);
     console.log('PASS: Download ZIP and Save ZIP produce real downloads with bundled libraries; CSS and ZIP compile on backend without a key; Generate/ZIP appear in dashboard.');
-    console.log('PASS: extracted ZIP opens from disk; WebP/SVG load; no horizontal scroll or overlap at 12 widths from 375 to 1920px.');
+    console.log('PASS: extracted ZIP preserves the selected desktop layout; paired references resize from 375 to 1920px.');
     console.log('Artifacts: test/artifacts/export/index.html, design.zip, before.html, after.html, preview-375.png, preview-1440.png');
   } finally { await browser.close(); await new Promise((resolve) => server.close(resolve)); }
 }

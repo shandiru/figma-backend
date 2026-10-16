@@ -26,14 +26,10 @@ const shouldRasterizeMask = (n) => {
 };
 // Tailwind scale class (gap-4) illana arbitrary (gap-[18px])
 const SP = { 0: '0', 1: 'px', 2: '0.5', 4: '1', 6: '1.5', 8: '2', 10: '2.5', 12: '3', 14: '3.5', 16: '4', 20: '5', 24: '6', 28: '7', 32: '8', 36: '9', 40: '10', 44: '11', 48: '12', 56: '14', 64: '16', 80: '20', 96: '24' };
-function nearest(value, scale, tolerance = 0.14, minimum = 1) {
-  const key = Object.keys(scale).map(Number).sort((a, b) => Math.abs(a - value) - Math.abs(b - value))[0];
-  return Math.abs(key - value) <= Math.max(minimum, Math.abs(value) * tolerance) ? scale[key] : null;
-}
-const sp = (pre, v) => { v = r(v); const step = nearest(v, SP); return step !== null ? `${pre}-${step}` : `${pre}-[${v}px]`; };
+const sp = (pre, v) => { v = r(v); const step = SP[v]; return step !== undefined ? `${pre}-${step}` : `${pre}-[${v}px]`; };
 const TEXT_SCALE = { 12: 'xs', 14: 'sm', 16: 'base', 18: 'lg', 20: 'xl', 24: '2xl', 30: '3xl', 36: '4xl', 48: '5xl', 60: '6xl', 72: '7xl', 96: '8xl', 128: '9xl' };
-const textSize = (v) => { const step = nearest(v, TEXT_SCALE); return step ? `text-${step}` : `text-[${r(v)}px]`; };
-const maxWidth = (v) => { const step = nearest(v, { 320: 'xs', 384: 'sm', 448: 'md', 512: 'lg', 576: 'xl', 672: '2xl', 768: '3xl', 896: '4xl', 1024: '5xl', 1152: '6xl', 1280: '7xl' }); return step ? `max-w-${step}` : `max-w-[${r(v)}px]`; };
+const textSize = (v) => TEXT_SCALE[v] ? `text-${TEXT_SCALE[v]}` : `text-[${r(v)}px]`;
+const maxWidth = (v) => { const step = { 320: 'xs', 384: 'sm', 448: 'md', 512: 'lg', 576: 'xl', 672: '2xl', 768: '3xl', 896: '4xl', 1024: '5xl', 1152: '6xl', 1280: '7xl' }[v]; return step ? `max-w-${step}` : `max-w-[${r(v)}px]`; };
 // Keep all preview breakpoints available; emit only meaningful layout changes.
 const BPS = ['', 'sm', 'md', 'lg', 'xl', '2xl'];
 const bp = (name, cls) => name ? `${name}:${cls}` : cls;
@@ -187,7 +183,22 @@ function sizeClasses(n, parent, opts, isRoot) {
     if (!isT) c.push(sp('h', G.h));
     return c;
   }
-  if (isRoot) return ['mx-auto', 'w-full', 'max-w-7xl', 'px-4', 'sm:px-6', 'lg:px-8'];
+  if (opts.annotate || opts.preserve) {
+    // References are measured designs. Preserve their geometry before merging viewports.
+    const auto = parent && parent.layoutMode && parent.layoutMode !== 'NONE';
+    if (isRoot) return ['relative', 'mx-auto', 'w-full', maxWidth(n.width), ...(!n.layoutMode || n.layoutMode === 'NONE' ? [sp('h', n.height)] : n.layoutSizingVertical === 'FIXED' ? [sp('min-h', n.height)] : [])];
+    if (!auto || n.layoutPositioning === 'ABSOLUTE') return absClasses(n, parent, geomOf(n, parent));
+    c.push('min-w-0', 'max-w-full');
+    const horizontal = parent.layoutMode === 'HORIZONTAL';
+    if (n.layoutSizingHorizontal === 'FILL' || n.layoutGrow === 1) c.push(...(horizontal ? ['flex-1'] : ['w-full']));
+    else if (n.layoutSizingHorizontal === 'HUG' || n.textAutoResize === 'WIDTH_AND_HEIGHT') c.push('w-fit');
+    else c.push(sp('w', n.width), ...(horizontal ? ['shrink-0'] : []));
+    if (n.type !== 'TEXT' && !['HUG', 'FILL'].includes(n.layoutSizingVertical)) c.push(sp('h', n.height));
+    if (n.layoutSizingVertical === 'FILL') c.push(horizontal ? 'self-stretch' : 'flex-1');
+    for (const [field, utility] of [['minWidth', 'min-w'], ['maxWidth', 'max-w'], ['minHeight', 'min-h'], ['maxHeight', 'max-h']]) if (typeof n[field] === 'number' && Number.isFinite(n[field])) c.push(sp(utility, n[field]));
+    return c;
+  }
+  if (isRoot) return ['mx-auto', 'w-full', maxWidth(n.width)];
   if (parent && isOverlay(n, parent)) return absClasses(n, parent, geomOf(n, parent));
   c.push('min-w-0');
   const horizontal = parent && parent.layoutMode === 'HORIZONTAL';
@@ -231,10 +242,11 @@ function repeatedItems(n) {
 }
 
 function flexClasses(n, opts, isRoot = false) {
+  if ((opts.annotate || opts.preserve) && (!n.layoutMode || n.layoutMode === 'NONE')) return ['relative'];
   const c = [], plan = layoutPlan(n);
   const horiz = n.layoutMode === 'HORIZONTAL' || (plan.inferred && plan.rows.length === 1 && plan.rows[0].length > 1);
   const stk = horiz && opts.responsive && n.width >= 600;
-  if (repeatedItems(n)) c.push('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3');
+  if (repeatedItems(n) && !opts.annotate && !opts.preserve) c.push('grid', 'grid-cols-1', 'md:grid-cols-2', 'lg:grid-cols-3');
   else c.push('flex', ...(stk ? ['flex-col', 'lg:flex-row'] : [horiz ? 'flex-row' : 'flex-col']));
   if (n.layoutWrap === 'WRAP') c.push('flex-wrap');
   let gap = n.itemSpacing;
@@ -249,10 +261,10 @@ function flexClasses(n, opts, isRoot = false) {
   if (n.layoutWrap === 'WRAP' && n.counterAxisSpacing > 0) c.push(...rsp('gap-y', n.counterAxisSpacing, opts));
   const pad = (pre, value) => { if (value > 0) c.push(...rsp(pre, value, opts)); };
   const t = n.paddingTop || 0, rr = n.paddingRight || 0, b = n.paddingBottom || 0, l = n.paddingLeft || 0;
-  // The page container owns its responsive horizontal gutters.
-  if (!isRoot && t === rr && rr === b && b === l) pad('p', t);
+  // Keep the padding measured on this Figma node.
+  if (t === rr && rr === b && b === l) pad('p', t);
   else {
-    if (!isRoot) { if (l === rr) pad('px', l); else { pad('pl', l); pad('pr', rr); } }
+    if (l === rr) pad('px', l); else { pad('pl', l); pad('pr', rr); }
     if (t === b) pad('py', t); else { pad('pt', t); pad('pb', b); }
   }
   const just = { MIN: 'justify-start', CENTER: 'justify-center', MAX: 'justify-end', SPACE_BETWEEN: 'justify-between' }[n.primaryAxisAlignItems] || 'justify-start';
@@ -268,8 +280,8 @@ async function visualClasses(n, opts, ctx) {
   cls.push(...bg.cls); style.push(...bg.style);
   if (n.type === 'ELLIPSE') cls.push('rounded-full');
   else if (typeof n.cornerRadius === 'number' && n.cornerRadius) {
-    const radius = nearest(n.cornerRadius, { 2: 'sm', 4: '', 6: 'md', 8: 'lg', 12: 'xl', 16: '2xl', 24: '3xl', 999: 'full' });
-    cls.push(radius !== null ? 'rounded' + (radius ? '-' + radius : '') : `rounded-[${r(n.cornerRadius)}px]`);
+    const radius = { 2: 'sm', 4: '', 6: 'md', 8: 'lg', 12: 'xl', 16: '2xl', 24: '3xl', 999: 'full' }[n.cornerRadius];
+    cls.push(radius !== undefined ? 'rounded' + (radius ? '-' + radius : '') : `rounded-[${r(n.cornerRadius)}px]`);
   }
   else if (typeof n.cornerRadius === 'symbol') cls.push(`rounded-tl-[${r(n.topLeftRadius)}px]`, `rounded-tr-[${r(n.topRightRadius)}px]`, `rounded-br-[${r(n.bottomRightRadius)}px]`, `rounded-bl-[${r(n.bottomLeftRadius)}px]`);
   const strokeP = visible(n.strokes).filter((p) => p.type === 'SOLID').pop();
@@ -315,8 +327,8 @@ function segStyle(seg, n, opts, ctx, force) {
   const lh = seg.lineHeight;
   if (lh && lh.unit === 'PIXELS') {
     const ratio = lh.value / fs;
-    const line = nearest(ratio, { 1: 'none', 1.25: 'tight', 1.375: 'snug', 1.5: 'normal', 1.625: 'relaxed', 2: 'loose' }, 0.04, 0.02);
-    c.push(line ? `leading-${line}` : `leading-[${r(ratio)}]`);
+    const line = { 1: 'none', 1.25: 'tight', 1.375: 'snug', 1.5: 'normal', 1.625: 'relaxed', 2: 'loose' }[ratio];
+    c.push(opts.annotate || opts.preserve ? `leading-[${r(lh.value)}px]` : line ? `leading-${line}` : `leading-[${Math.round(ratio * 10000) / 10000}]`);
   }
   else if (lh && lh.unit === 'PERCENT') c.push(`leading-[${r(lh.value)}%]`);
   const ls = seg.letterSpacing;
@@ -483,7 +495,7 @@ async function renderNode(n, parent, opts, depth, ctx) {
   const sz = sizeClasses(n, parent, opts, isRoot);
   const kids = n.children || [];
   const c = [...sz, ...(opts.exact ? [] : flexClasses(n, opts, isRoot))];
-  const needsRel = opts.exact || kids.some((k) => isOverlay(k, n));
+  const needsRel = opts.exact || ((opts.annotate || opts.preserve) && (!n.layoutMode || n.layoutMode === 'NONE')) || kids.some((k) => isOverlay(k, n));
   if (needsRel && !sz.includes('absolute') && !sz.includes('relative')) c.push('relative');
   const vis = await visualClasses(n, opts, ctx);
   c.push(...vis.cls);
@@ -493,12 +505,16 @@ async function renderNode(n, parent, opts, depth, ctx) {
     const paint = visible(n.fills).find((p) => p.type === 'IMAGE');
     const key = paint.imageHash;
     const imageClasses = c.filter((value) => !/^im\d+$/.test(value) && !['flex', 'flex-col', 'flex-row', 'items-stretch', 'justify-start', 'w-fit'].includes(value));
-    imageClasses.push('w-full', 'h-auto', 'object-cover');
+    if (opts.annotate || opts.preserve) {
+      if (!imageClasses.some((value) => /^(?:w-|flex-1)/.test(value))) imageClasses.push(sp('w', n.width));
+      if (!imageClasses.some((value) => /^(?:h-|self-stretch)/.test(value))) imageClasses.push(sp('h', n.height));
+    } else imageClasses.push('w-full', 'h-auto');
+    imageClasses.push(paint.scaleMode === 'FIT' ? 'object-contain' : 'object-cover');
     return `${ind}<img class="${imageClasses.join(' ')}" src="${key && opts.images ? `__IMG_${key}__` : `https://placehold.co/${Math.round(n.width)}x${Math.round(n.height)}`}" width="${Math.round(n.width)}" height="${Math.round(n.height)}" alt="${esc(n.name)}">`;
   }
   const out = [];
   const plan = layoutPlan(n);
-  const rows = !opts.exact && plan.inferred && !repeatedItems(n) ? plan.rows : [kids.filter((child) => !isOverlay(child, n))];
+  const rows = !opts.exact && !opts.annotate && !opts.preserve && plan.inferred && !repeatedItems(n) ? plan.rows : [kids.filter((child) => !isOverlay(child, n))];
   for (const row of rows) {
     const wrap = plan.inferred && rows.length > 1 && row.length > 1;
     const contents = [];
@@ -558,7 +574,7 @@ async function generate(opts) {
     for (const n of sel) {
       // Measure supplied designs without heuristic scaling; the UI merges their layers locally.
       ctx.h1 = 0;
-      const markup = await toHtml(n, null, multi ? { ...opts, responsive: false, annotate: true } : opts, 0, ctx);
+      const markup = await toHtml(n, null, { ...opts, preserve: true, responsive: false, annotate: multi }, 0, ctx);
       references.push({ name: n.name, width: Math.round(n.width), height: Math.round(n.height), html: markup });
     }
     const counts = new Map(), colors = {};

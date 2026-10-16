@@ -240,12 +240,12 @@ test('SVGs with different root colors are not deduplicated into one symbol', asy
 test('responsive typography scales line height and removes inherited duplicate classes', () => {
   const ctx = svgContext();
   const values = vm.runInContext('rspText(64, { responsive: true })', ctx);
-  assert.ok(values.includes('text-4xl') && values.includes('lg:text-6xl'));
+  assert.ok(values.includes('text-[35.2px]') && values.includes('lg:text-[64px]'));
   assert.ok(!values.some((value) => value.startsWith('2xl:')));
   const switched = vm.runInContext('rspSwitch("flex-col", "flex-row")', ctx);
   assert.deepEqual(Array.from(switched), ['flex-col', 'lg:flex-row']);
   ctx.segment = { fontSize: 64, fontName: { family: 'Inter', style: 'Regular' }, fontWeight: 400, lineHeight: { unit: 'PIXELS', value: 72 }, fills: [] };
   const styles = vm.runInContext('segStyle(segment, {}, { responsive: true }, { fonts: {} })', ctx);
-  assert.ok(styles.cls.includes('leading-[1.13]'));
+  assert.ok(styles.cls.includes('leading-[1.125]'));
   assert.ok(!styles.cls.some((value) => /(?:sm|md|lg|xl):leading-/.test(value)));
 });

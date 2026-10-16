@@ -30,7 +30,9 @@ ZIP contents: `index.html`, `assets/tailwind.css`, `assets/images/*.webp`, `asse
 
 ## Responsive behavior
 
-Auto Layout maps to flex/grid. Coordinate layouts are grouped into flow rows; repeated cards become one/two/three-column grids. Typography and spacing adapt at useful thresholds. A phone + desktop card grid receives a two-column tablet step; a supplied tablet reference takes priority. Larger viewports inherit styles until an override is needed, so every element does not need every breakpoint prefix.
+Accuracy is the default: spacing, font sizes, radii, fixed widths/heights and page padding retain their measured Figma values. Exact Tailwind scale equivalents are used when available; 17px stays 17px and 19px type stays 19px. Auto Layout retains flex direction, alignment, gaps, fixed/fill/hug sizing and wrapping. Free-positioned layers keep their original coordinates instead of being rearranged into inferred rows or grids.
+
+One selected design preserves that design at its native width. Supply mobile + desktop references to adapt between two intended layouts. A single fixed/freeform design does not provide enough information to reconstruct an unrelated phone layout.
 
 With two references, tablet typography and spacing interpolate between the measured mobile and desktop values. On XL and wider screens the page can grow to the selected desktop design width instead of being capped at 1280px. A supplied tablet frame overrides inferred tablet values. Saved reference pairs automatically enable responsive output; clear them to generate an independent exact layout.
 
@@ -56,4 +58,4 @@ npm.cmd test
 npm.cmd run test:browser
 ```
 
-Browser verification uses installed Chrome (`BROWSER_CHANNEL=msedge` selects Edge). It exercises the plugin UI against local Express, downloads and extracts the ZIP, verifies WebP/SVG assets, and checks overflow/overlap at 12 widths from 375 to 1920px. Artifacts are written to `test/artifacts/`. A real Figma session is still needed to verify your own design.
+Browser verification uses installed Chrome (`BROWSER_CHANNEL=msedge` selects Edge). It exercises the plugin UI against local Express, downloads and extracts the ZIP, verifies WebP/SVG assets, and checks the native desktop layout plus paired references from 375 to 1920px. A separate accuracy fixture compares original x/y positions, asymmetric padding, 17px gaps, fixed dimensions, image crop bounds, 19px type, 25px line height and a 7px radius against the browser output. Artifacts are written to `test/artifacts/`. A real Figma session is still needed to verify your own design.

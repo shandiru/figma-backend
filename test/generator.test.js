@@ -9,7 +9,7 @@ function generator() {
   vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
   return { ctx, messages };
 }
-test('sample uses flow, semantic HTML, fluid images and named repeated colors', async () => {
+test('sample preserves measured design geometry, semantic HTML, images and named colors', async () => {
   const { ctx, messages } = generator();
   ctx.figma.currentPage.selection = [hydrate(sampleDesign())];
   await vm.runInContext('generate({ responsive: true, images: true })', ctx);
@@ -17,15 +17,17 @@ test('sample uses flow, semantic HTML, fluid images and named repeated colors', 
   assert.ok(result, JSON.stringify(messages));
   assert.match(result.html, /<main/);
   assert.match(result.html, /<section/);
-  assert.match(result.html, /grid-cols-1 md:grid-cols-2 lg:grid-cols-3/);
+  assert.match(result.html, /left-\[600px\]/);
+  assert.match(result.html, /w-\[560px\]/);
+  assert.match(result.html, /text-6xl/);
   assert.match(result.html, /<button type="button"/);
   assert.match(result.html, /<span[^>]*>Get started<\/span>/);
-  assert.match(result.html, /<img[^>]+w-full[^>]+h-auto[^>]+object-cover/);
+  assert.match(result.html, /<img[^>]+absolute[^>]+h-\[360px\][^>]+object-cover/);
   assert.match(result.html, /src="__IMG_photo__"/);
   assert.match(result.html, /bg-design-/);
   assert.ok(Object.keys(result.colors).length >= 2);
-  assert.doesNotMatch(result.html, /class="[^"]*\babsolute\b|\b(?:top|left)-\[|[" ](?:w|h)-\[/);
-  assert.match(result.html, /gap-4/); // 17px snaps to 16px
+  assert.doesNotMatch(result.html, /max-w-7xl|sm:px-6|lg:px-8/);
+  assert.match(result.html, /gap-\[17px\]/); // Preserve the original spacing.
 });
 test('coordinate-only mixed rows are inferred; only genuine overlays are absolute', async () => {
   const { ctx } = generator();
@@ -54,7 +56,7 @@ test('unnamed coordinate cards form one grid without row wrappers', async () => 
   assert.doesNotMatch(html, /class="[^"]*\babsolute\b/);
 });
 
-test('inferred row wrappers are annotated for matching multiple viewport references', async () => {
+test('free-positioned reference layers preserve coordinates instead of introducing row wrappers', async () => {
   const { ctx, messages } = generator();
   const design = (width) => hydrate(node('Page', width, 500, [
     text('Title', 'Shared title', 36, { y: 0 }),
@@ -66,7 +68,8 @@ test('inferred row wrappers are annotated for matching multiple viewport referen
   const result = messages.find((message) => message.type === 'result');
   assert.ok(result);
   for (const reference of result.references) {
-    assert.match(reference.html, /data-kind="INFERRED_ROW"/);
+    assert.doesNotMatch(reference.html, /data-kind="INFERRED_ROW"/);
+    assert.match(reference.html, /absolute/);
     assert.match(reference.html, /Left content/);
     assert.match(reference.html, /Right content/);
   }

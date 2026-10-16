@@ -138,7 +138,7 @@
   <div class="aibar">
     <span class="aitag">Express</span>
     <span>HTML + Tailwind</span>
-    <span>One mobile-first layout. Resize the preview to check it.</span>
+    <span>Original design sizes and spacing. Add mobile + desktop for responsive output.</span>
     <span class="spacer"></span>
   </div>
   <details class="aibar">
@@ -171,7 +171,7 @@
     <div class="empty" id="empty">
       <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></div>
       <h2>Convert your design to code</h2>
-      <p>Select matching mobile + desktop frames (optional tablet), then Generate. Use matching layer names for shared sections. No API key needed.</p>
+      <p>Select a design to preserve its layout, or save mobile + desktop references to generate a responsive page.</p>
       <div class="steps"><span class="step">1. Select frame</span><span class="step">2. Generate</span><span class="step">3. Copy</span></div>
     </div>
     <div class="panel active" id="p-preview"><div class="stage" id="stage"><div class="frame" id="frame"><iframe id="prev"></iframe></div></div></div>
@@ -491,7 +491,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     }
     if (!map.has('display')) map.set('display', 'block');
     if (element.getAttribute('data-kind') === 'TEXT') {
-      map.set('whitespace', 'whitespace-normal');
+      if (!map.has('whitespace')) map.set('whitespace', 'whitespace-normal');
       map.set('max-w', 'max-w-full');
       map.set('min-w', 'min-w-0');
       map.set('break', 'break-words');
@@ -516,7 +516,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
         // A supplied tablet reference always takes priority over this inference.
         if (group === 'grid-cols' && maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && maps[0].get(group) === 'grid-cols-1' && /^grid-cols-(?:[3-9]|1[0-2])$/.test(maps[1].get(group) || '')) value = 'grid-cols-2';
         if (group === 'grid-cols' && maps.length === 2 && active === 0 && i > 2 && starts[1] > i && previous === 'grid-cols-2') value = previous;
-        if (maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && (group === 'font-size' || /^(?:p[trbl]|gap(?:-[xy])?)$/.test(group))) {
+        if (maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && (group === 'font-size' || group === 'leading' || /^(?:p[trbl]|gap(?:-[xy])?)$/.test(group))) {
           const mobile = numericUtility(maps[0].get(group), group), desktop = numericUtility(maps[1].get(group), group);
           if (mobile !== null && desktop !== null && mobile !== desktop) value = `${group === 'font-size' ? 'text' : group}-[${Math.round((mobile + desktop) / 2)}px]`;
         }
@@ -693,7 +693,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
         document.querySelectorAll('.dev').forEach((x) => x.classList.toggle('active', parseInt(x.dataset.w, 10) === frameW));
       }
       let fixMsg = '';
-      fixMsg = 'Responsive code compiled by Express';
+      fixMsg = 'Design code compiled by Express';
       reportGeneration('progress', 'Sending responsive markup to Express');
       await eventQueue;
       const result = await backendRequest('/api/generate', { runId: generationRun, html: skeleton, theme: configObject().theme.extend });
@@ -704,7 +704,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       setLoading(false);
       $('empty').style.display = 'none';
       await refreshViews();
-      reportGeneration('done', 'Responsive HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
+      reportGeneration('done', references.length > 1 ? 'Responsive HTML ready' : 'Design HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
       if (fixMsg) toast(fixMsg);
       } catch (error) {
         generationReady = false;
