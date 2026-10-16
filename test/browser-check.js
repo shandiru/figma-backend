@@ -111,6 +111,30 @@ async function verifyMeasuredDesign(browser, backend, out, png) {
   assert.deepEqual(actual.panel, { x: 37, y: 89, width: 835, height: 211 });
   assert.deepEqual(actual.image, { x: 58, y: 110, width: 147, height: 83 });
   assert.equal(actual.fontSize, '19px'); assert.equal(actual.lineHeight, '25px'); assert.equal(actual.radius, '7px');
+  // Force traditional scrollbar dimensions, as in the Windows Figma iframe.
+  await page.addStyleTag({ content: '#stage::-webkit-scrollbar{width:17px;height:17px}' });
+  await page.locator('#prev').evaluate(frame => {
+    const style = frame.contentDocument.createElement('style');
+    style.textContent = 'html::-webkit-scrollbar{width:17px;height:17px}';
+    frame.contentDocument.head.appendChild(style);
+  });
+  for (const panelWidth of [1000, 800]) {
+    await page.setViewportSize({ width: panelWidth, height: 900 });
+    for (const width of [375, 640, 901, 1440]) {
+      await page.locator('#viewport').fill(String(width));
+      await page.waitForFunction(expected => {
+        const stage = document.querySelector('#stage'), frame = document.querySelector('#prev'), doc = frame.contentDocument;
+        return frame.contentWindow.innerWidth === expected && stage.scrollWidth <= stage.clientWidth && doc.documentElement.scrollWidth <= doc.documentElement.clientWidth && doc.documentElement.scrollHeight <= doc.documentElement.clientHeight + 1;
+      }, width);
+    }
+  }
+  // Growing image/font content remains reachable using the outer stage scroll.
+  await page.locator('#prev').evaluate(frame => { frame.contentDocument.querySelector('main').style.minHeight = '1800px'; });
+  await page.waitForFunction(() => {
+    const stage = document.querySelector('#stage'), frame = document.querySelector('#prev'), doc = frame.contentDocument;
+    return stage.scrollHeight > stage.clientHeight && doc.documentElement.scrollHeight <= doc.documentElement.clientHeight + 1 && stage.scrollWidth <= stage.clientWidth;
+  });
+  await page.locator('#prev').evaluate(frame => { frame.contentDocument.querySelector('main').style.minHeight = ''; });
   fs.writeFileSync(path.join(out, 'accuracy-measurements.json'), JSON.stringify(actual, null, 2));
   await page.screenshot({ path: path.join(out, 'accuracy-plugin.png'), fullPage: true });
   await page.close();
@@ -205,7 +229,8 @@ async function main() {
     await page.goto(pathToFileURL(path.join(out, 'export/index.html')).href);
     await page.waitForFunction(() => [...document.images].every((img) => img.complete && img.naturalWidth > 0));
     const measurements = [];
-    for (const width of [1440, 1920]) {
+    await page.addStyleTag({ content: 'html::-webkit-scrollbar{width:17px;height:17px}' });
+    for (const width of [375, 639, 640, 767, 768, 1023, 1024, 1279, 1280, 1440, 1536, 1920]) {
       await page.setViewportSize({ width, height: 1000 });
       const value = await page.evaluate(() => {
         const root = document.querySelector('main');
@@ -216,11 +241,13 @@ async function main() {
           const boxes = [...parent.children].filter((el) => getComputedStyle(el).position !== 'absolute').map((el) => el.getBoundingClientRect());
           return boxes.some((a, i) => boxes.slice(i + 1).some((b) => overlaps(a, b)));
         });
-        return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, direction: getComputedStyle(hero).flexDirection, columns: getComputedStyle(root.children[2]).gridTemplateColumns.split(' ').length, siblingOverlap, imageLoaded: document.querySelector('img[alt="Product photo"]').naturalWidth > 0, heroOverlap: overlaps(rects[0], rects[1]) };
+        return { width: innerWidth, clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth, direction: getComputedStyle(hero).flexDirection, columns: getComputedStyle(root.children[2]).gridTemplateColumns.split(' ').length, siblingOverlap, imageLoaded: document.querySelector('img[alt="Product photo"]').naturalWidth > 0, heroOverlap: overlaps(rects[0], rects[1]) };
       });
-      assert.ok(value.scrollWidth <= width, JSON.stringify(value));
-      assert.equal(value.siblingOverlap, false, JSON.stringify(value));
-      assert.equal(value.heroOverlap, false, JSON.stringify(value));
+      assert.ok(value.scrollWidth <= value.clientWidth, JSON.stringify(value));
+      if (width >= 1440) {
+        assert.equal(value.siblingOverlap, false, JSON.stringify(value));
+        assert.equal(value.heroOverlap, false, JSON.stringify(value));
+      }
       assert.equal(value.direction, 'row');
       measurements.push(value);
       if ([375, 1440].includes(width)) await page.screenshot({ path: path.join(out, `preview-${width}.png`), fullPage: true });

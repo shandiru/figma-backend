@@ -267,14 +267,31 @@
   function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1600); }
   function setLoading(on, label) { document.body.classList.toggle('loading', on); $('gen').disabled = on; $('genlabel').textContent = on ? (label || 'Generating...') : 'Generate'; }
   function showErr(m) { const e = $('err'); e.style.display = m ? 'block' : 'none'; e.textContent = m || ''; }
-  // preview: always real device width la render panni, fit aaga scale pannum
+  // Keep the iframe at the requested content width. The outer stage scrolls
+  // vertically so an inner scrollbar cannot steal width from the design.
+  let previewObserver;
   function layoutPreview() {
     const stage = $('stage'), f = $('prev'), fr = $('frame');
-    const availW = Math.max(200, stage.clientWidth - 32), availH = Math.max(200, stage.clientHeight - 32);
+    const availW = Math.max(1, stage.clientWidth - 32), availH = Math.max(1, stage.clientHeight - 32);
     const k = Math.min(1, availW / devW);
-    f.style.width = devW + 'px'; f.style.height = Math.round(availH / k) + 'px'; f.style.transform = 'scale(' + k + ')';
-    fr.style.width = Math.round(devW * k) + 'px'; fr.style.height = availH + 'px';
+    f.style.width = devW + 'px';
+    const body = f.contentDocument && f.contentDocument.body;
+    const height = Math.ceil(Math.max(availH / k, body ? Math.max(body.scrollHeight, body.getBoundingClientRect().height) : 0));
+    f.style.height = height + 'px'; f.style.transform = 'scale(' + k + ')';
+    fr.style.width = Math.floor(devW * k) + 'px'; fr.style.height = Math.ceil(height * k) + 'px';
   }
+  $('prev').addEventListener('load', () => {
+    if (previewObserver) previewObserver.disconnect();
+    const doc = $('prev').contentDocument;
+    if (doc && doc.body) {
+      previewObserver = new ResizeObserver(layoutPreview);
+      previewObserver.observe(doc.body);
+      if (doc.fonts) doc.fonts.ready.then(layoutPreview);
+      doc.addEventListener('load', layoutPreview, true);
+    }
+    layoutPreview();
+  });
+  new ResizeObserver(layoutPreview).observe($('stage'));
   window.addEventListener('resize', layoutPreview);
   layoutPreview();
 

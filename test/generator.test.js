@@ -17,8 +17,8 @@ test('sample preserves measured design geometry, semantic HTML, images and named
   assert.ok(result, JSON.stringify(messages));
   assert.match(result.html, /<main/);
   assert.match(result.html, /<section/);
-  assert.match(result.html, /left-\[600px\]/);
-  assert.match(result.html, /w-\[560px\]/);
+  assert.match(result.html, /left-\[50%\]/);
+  assert.match(result.html, /w-\[46\.6667%\]/);
   assert.match(result.html, /text-6xl/);
   assert.match(result.html, /<button type="button"/);
   assert.match(result.html, /<span[^>]*>Get started<\/span>/);

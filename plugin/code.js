@@ -147,7 +147,7 @@ const geomOf = (n, parent) => (VECTORS.includes(n.type) ? geom(n, parent) : { x:
 /* ---------- sizing / positioning ---------- */
 const stacked = (n, opts) => opts.responsive && n.layoutMode === 'HORIZONTAL' && n.layoutWrap !== 'WRAP' && n.width >= 600;
 
-function absClasses(n, parent, G) {
+function absClasses(n, parent, G, fluid = false) {
   const W = G.w, Ht = G.h;
   const c = ['absolute'];
   const grp = parent.type === 'GROUP' && !G.rot;
@@ -156,12 +156,14 @@ function absClasses(n, parent, G) {
   const pw = parent.width || 1, ph = parent.height || 1;
   const isText = n.type === 'TEXT', fitW = isText && n.textAutoResize === 'WIDTH_AND_HEIGHT';
   const H = cs.horizontal, V = cs.vertical;
-  if (H === 'MAX') c.push(sp('right', pw - x - W));
-  else if (H === 'CENTER') c.push('left-1/2', '-translate-x-1/2', `ml-[${r(x + W / 2 - pw / 2)}px]`);
-  else if (H === 'STRETCH') c.push(sp('left', x), sp('right', pw - x - W));
+  const horizontal = (pre, value) => fluid ? `${pre}-[${Math.round(value / pw * 1000000) / 10000}%]` : sp(pre, value);
+  if (H === 'MAX') c.push(horizontal('right', pw - x - W));
+  else if (H === 'CENTER') c.push('left-1/2', '-translate-x-1/2', horizontal('ml', x + W / 2 - pw / 2));
+  else if (H === 'STRETCH') c.push(horizontal('left', x), horizontal('right', pw - x - W));
   else if (H === 'SCALE') c.push(`left-[${r((x / pw) * 100)}%]`, `w-[${r((W / pw) * 100)}%]`);
-  else c.push(sp('left', x));
-  if (H !== 'STRETCH' && H !== 'SCALE' && !fitW) c.push(sp('w', W));
+  else c.push(horizontal('left', x));
+  if (H !== 'STRETCH' && H !== 'SCALE' && !fitW) c.push(horizontal('w', W));
+  if (fluid) c.push('min-w-0', `max-w-[${Math.max(0, Math.round((pw - x) / pw * 1000000) / 10000)}%]`);
   if (V === 'MAX') c.push(sp('bottom', ph - y - Ht));
   else if (V === 'CENTER') c.push('top-1/2', '-translate-y-1/2', `mt-[${r(y + Ht / 2 - ph / 2)}px]`);
   else if (V === 'STRETCH') c.push(sp('top', y), sp('bottom', ph - y - Ht));
@@ -187,15 +189,21 @@ function sizeClasses(n, parent, opts, isRoot) {
     // References are measured designs. Preserve their geometry before merging viewports.
     const auto = parent && parent.layoutMode && parent.layoutMode !== 'NONE';
     if (isRoot) return ['relative', 'mx-auto', 'w-full', maxWidth(n.width), ...(!n.layoutMode || n.layoutMode === 'NONE' ? [sp('h', n.height)] : n.layoutSizingVertical === 'FIXED' ? [sp('min-h', n.height)] : [])];
-    if (!auto || n.layoutPositioning === 'ABSOLUTE') return absClasses(n, parent, geomOf(n, parent));
+    if (!auto || n.layoutPositioning === 'ABSOLUTE') return absClasses(n, parent, geomOf(n, parent), opts.fluidCoordinates);
     c.push('min-w-0', 'max-w-full');
     const horizontal = parent.layoutMode === 'HORIZONTAL';
     if (n.layoutSizingHorizontal === 'FILL' || n.layoutGrow === 1) c.push(...(horizontal ? ['flex-1'] : ['w-full']));
     else if (n.layoutSizingHorizontal === 'HUG' || n.textAutoResize === 'WIDTH_AND_HEIGHT') c.push('w-fit');
-    else c.push(sp('w', n.width), ...(horizontal ? ['shrink-0'] : []));
+    else c.push(sp('w', n.width), ...(horizontal ? ['shrink'] : []));
     if (n.type !== 'TEXT' && !['HUG', 'FILL'].includes(n.layoutSizingVertical)) c.push(sp('h', n.height));
     if (n.layoutSizingVertical === 'FILL') c.push(horizontal ? 'self-stretch' : 'flex-1');
-    for (const [field, utility] of [['minWidth', 'min-w'], ['maxWidth', 'max-w'], ['minHeight', 'min-h'], ['maxHeight', 'max-h']]) if (typeof n[field] === 'number' && Number.isFinite(n[field])) c.push(sp(utility, n[field]));
+    for (const [field, utility] of [['minWidth', 'min-w'], ['maxWidth', 'max-w'], ['minHeight', 'min-h'], ['maxHeight', 'max-h']]) if (typeof n[field] === 'number' && Number.isFinite(n[field])) {
+      if (field.endsWith('Width')) {
+        const previous = c.indexOf(field === 'minWidth' ? 'min-w-0' : 'max-w-full');
+        if (previous >= 0) c.splice(previous, 1);
+        c.push(`${utility}-[min(100%,${r(n[field])}px)]`);
+      } else c.push(sp(utility, n[field]));
+    }
     return c;
   }
   if (isRoot) return ['mx-auto', 'w-full', maxWidth(n.width)];
@@ -373,6 +381,7 @@ async function textHtml(n, parent, opts, ctx, ind, isRoot) {
   else if (n.textAlignHorizontal === 'RIGHT') c.push('text-right');
   else if (n.textAlignHorizontal === 'JUSTIFIED') c.push('text-justify');
   if (opts.responsive) c.push('min-w-0', 'max-w-full', 'break-words');
+  else if (opts.fluidCoordinates) c.push('min-w-0', 'max-w-full', 'break-words');
   else if (n.textAutoResize === 'WIDTH_AND_HEIGHT' && c.indexOf('whitespace-nowrap') < 0) c.push('whitespace-nowrap');
   if (n.textTruncation === 'ENDING') c.push(n.maxLines ? `line-clamp-${n.maxLines}` : 'truncate');
   effects(n, c, style);
@@ -574,7 +583,7 @@ async function generate(opts) {
     for (const n of sel) {
       // Measure supplied designs without heuristic scaling; the UI merges their layers locally.
       ctx.h1 = 0;
-      const markup = await toHtml(n, null, { ...opts, preserve: true, responsive: false, annotate: multi }, 0, ctx);
+      const markup = await toHtml(n, null, { ...opts, preserve: true, fluidCoordinates: opts.responsive && !opts.exact, responsive: false, annotate: multi }, 0, ctx);
       references.push({ name: n.name, width: Math.round(n.width), height: Math.round(n.height), html: markup });
     }
     const counts = new Map(), colors = {};
