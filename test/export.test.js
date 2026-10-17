@@ -44,7 +44,9 @@ test('Express generation and ZIP export preserve responsive CSS and SVG assets',
     const fallback = await post('/api/generate', { runId: 'ai-fallback-run', html: '<main class="p-4">Safe</main>', ai: true });
     assert.equal(fallback.status, 200);
     assert.equal((await fallback.json()).ai.applied, false);
-    assert.equal((await post('/api/refine', {})).status, 404);
+    const refine = await post('/api/refine', { runId: 'refine-no-key', html: '<main>Safe</main>' });
+    assert.equal(refine.status, 503);
+    assert.match((await refine.json()).error, /not configured/);
     const health = await (await fetch(base + '/api/health')).json();
     assert.equal(health.engine, 'figma-rules');
     assert.equal(health.maxHtmlChars, 2000000);

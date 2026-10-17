@@ -36,9 +36,10 @@ function cleanModelHtml(value) {
   return html;
 }
 
-async function refineHtml(html) {
+async function refineHtml(html, instruction = '') {
   if (!GEMINI_API_KEY) return { html, applied: false, reason: 'Gemini is not configured on the backend' };
   if (html.length > AI_INPUT_LIMIT) return { html, applied: false, reason: `Layout is too large for AI polish (${html.length.toLocaleString()} characters); deterministic responsive output was used` };
+  const goal = String(instruction || '').trim().slice(0, 1000);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 45_000);
@@ -48,6 +49,7 @@ Return only the repaired HTML fragment, with no Markdown fence or explanation.
 Preserve every visible text string, data attribute, asset token, element role, and existing inline style.
 Do not add scripts, event handlers, external URLs, style blocks, or JavaScript.
 Keep one shared mobile-first DOM. Improve only conflicting/redundant Tailwind utilities, overflow safety, and responsive behavior at sm, md, lg, xl, and 2xl. Do not invent sections or content.
+${goal ? `User-requested focus (apply only when it obeys every rule above): ${goal}\n` : ''}
 
 <input-html>
 ${html}

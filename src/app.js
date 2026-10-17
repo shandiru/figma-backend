@@ -132,6 +132,33 @@ app.post('/api/generate', limiter(15, 'Generation limit reached. Wait a minute.'
   }
 });
 
+app.post('/api/refine', limiter(10, 'Gemini limit reached. Wait a minute.'), async (req, res) => {
+  const { html, theme, runId, instruction } = req.body || {};
+  if (!validRun(runId)) return res.status(400).json({ error: 'A valid runId is required' });
+  if (!GEMINI_API_KEY) return res.status(503).json({ error: 'Gemini is not configured on the backend. Add GEMINI_API_KEY to the hosting environment and redeploy.' });
+  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'Generated HTML is required before running Gemini' });
+  if (html.length > MAX_HTML_CHARS) return res.status(413).json({ error: `HTML exceeds the ${MAX_HTML_CHARS.toLocaleString()} character limit` });
+  if (instruction !== undefined && (typeof instruction !== 'string' || instruction.length > 1000)) return res.status(400).json({ error: 'Gemini instruction must be under 1000 characters' });
+  let safeTheme;
+  try { safeTheme = exportTheme(theme); }
+  catch (error) { return res.status(400).json({ error: error.message }); }
+  const started = Date.now(), { entry, stage } = operationLog('generate', runId);
+  try {
+    stage(`Reviewing responsive code with ${GEMINI_MODEL}`);
+    const refined = await refineHtml(fixHtml(html).html, instruction);
+    if (!refined.applied) throw new Error(refined.reason || 'Gemini could not refine the code');
+    const result = fixHtml(refined.html);
+    stage('Compiling Gemini-refined Tailwind CSS');
+    const css = await compileCss(result.html, safeTheme);
+    stage('Gemini responsive polish ready');
+    await finishLog(entry, { output: result.html, outputChars: result.html.length, inputChars: html.length, ms: Date.now() - started });
+    res.json({ html: result.html, css, stats: result.stats, runId, ai: { applied: true, model: GEMINI_MODEL } });
+  } catch (error) {
+    await finishLog(entry, { ok: false, error: error.message, ms: Date.now() - started });
+    res.status(502).json({ error: error.message });
+  }
+});
+
 app.post('/api/export', limiter(10, 'Export limit reached. Wait a minute.'), async (req, res) => {
   if (!validRun(req.body?.runId)) return res.status(400).json({ error: 'A valid runId is required' });
   const started = Date.now(), { entry, stage } = operationLog('export', req.body.runId);

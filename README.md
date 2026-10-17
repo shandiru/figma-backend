@@ -21,10 +21,12 @@ For Vercel, set the project Root Directory to `backend` when deploying the outer
 
 ## Generate and download
 
-1. Select your mobile frame/component and click **Use selection as Mobile**. Select your desktop design and click **Use selection as Desktop**. The pair stays saved while you change the canvas selection. Alternatively, clear the saved pair and select both designs together. Groups and component sets with two or three viewport variants are supported too.
+1. Select your mobile frame/section/component and click **Use selection as Mobile**. Select your desktop design and click **Use selection as Desktop**. The pair stays saved while you change the canvas selection. Alternatively, clear the saved pair, select both standalone designs together, and click Generate. Frames, Sections, Groups and component sets with two or three viewport variants are supported.
 2. Keep **Responsive** enabled and click **Generate**.
 3. Inspect mobile, sm (640), md (768), lg (1024), xl (1280), 2xl (1536), or enter a width from 320 to 4096px.
 4. Click **Download ZIP**. Use **Save ZIP** if the automatic download is blocked.
+
+The **Gemini** tab shows the backend/model connection state. After generation, add an optional focused instruction and click **Run Gemini polish**; successful output replaces the current Preview and Code results. The action is disabled with an explicit configuration message when the backend has no Gemini key.
 
 The plugin reads the Figma tree and exports original vector icons and image bytes. It matches shared layers using names, text content, compatible component/instance types and sibling structure, combines references into one HTML tree, and encodes raster images as WebP. Repeated generic Figma names are paired in order rather than automatically reported as errors. Express cleans HTML utilities, optionally runs the server-side Gemini repair pass, compiles Tailwind CSS, and packages the ZIP. No Tailwind runtime CDN is needed. If AI is unavailable, too slow, or the layout exceeds its bounded input size, generation safely falls back to deterministic output.
 

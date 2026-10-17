@@ -70,7 +70,9 @@ test('UI JavaScript parses; Express compiles, optionally polishes, and packages 
   assert.match(script, /\/api\/export/);
   assert.doesNotMatch(script, /pluginkey|localStorage.*key/i);
   assert.match(ui, /id="ai"/);
+  assert.match(ui, /data-tab="gemini"/);
   assert.match(result, /ai: \$\('ai'\)\.checked/);
+  assert.match(script, /backendRequest\('\/api\/refine'/);
 });
 
 test('phone and desktop card grids infer a two-column tablet without another frame', () => {
@@ -150,6 +152,18 @@ test('mobile and desktop references can be captured separately and component set
   figma.currentPage.selection = [{ type: 'COMPONENT_SET', children: [desktop, mobile] }];
   await vm.runInContext('generate({ responsive: true })', ctx);
   assert.deepEqual(Array.from(messages.findLast(message => message.type === 'result').references, ref => ref.width), [390, 1440]);
+});
+
+test('two separately designed Figma sections can generate one responsive reference pair', async () => {
+  const messages = [];
+  const section = (id, width) => ({ id, name: id, type: 'SECTION', width, height: 900, layoutMode: 'VERTICAL', children: [], fills: [], strokes: [] });
+  const figma = { showUI() {}, on() {}, currentPage: { selection: [section('Mobile page', 390), section('Desktop page', 1440)] }, ui: { postMessage: message => messages.push(message) } };
+  const ctx = vm.createContext({ __html__: '', figma });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, 'code.js'), 'utf8'), ctx);
+  await vm.runInContext('generate({ responsive: true, exact: false, images: false })', ctx);
+  const result = messages.find(message => message.type === 'result');
+  assert.ok(result, JSON.stringify(messages));
+  assert.deepEqual(Array.from(result.references, ref => ref.width), [390, 1440]);
 });
 
 test('unmatched controls are hidden outside their source viewport and reported', () => {

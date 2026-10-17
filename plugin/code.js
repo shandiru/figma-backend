@@ -555,7 +555,7 @@ async function renderNode(n, parent, opts, depth, ctx) {
 
 const say = (msg) => figma.ui.postMessage({ type: 'progress', msg });
 const referenceSlots = { mobile: null, desktop: null };
-const referenceNode = (n) => n && !n.removed && ['FRAME', 'COMPONENT', 'INSTANCE', 'GROUP'].includes(n.type);
+const referenceNode = (n) => n && !n.removed && ['FRAME', 'COMPONENT', 'INSTANCE', 'GROUP', 'SECTION'].includes(n.type);
 function sendReferences() {
   const slots = {};
   for (const role of ['mobile', 'desktop']) {
@@ -658,7 +658,7 @@ figma.on('selectionchange', sendSelection);
 figma.ui.onmessage = async (m) => {
   if (m.type === 'capture-reference' && ['mobile', 'desktop'].includes(m.role)) {
     const selected = figma.currentPage.selection;
-    if (selected.length !== 1 || !referenceNode(selected[0])) return figma.ui.postMessage({ type: 'reference-error', msg: 'Select one frame, component, instance or group on the canvas, then click Use selection.' });
+    if (selected.length !== 1 || !referenceNode(selected[0])) return figma.ui.postMessage({ type: 'reference-error', msg: 'Select one frame, section, component, instance or group on the canvas, then click Use selection.' });
     referenceSlots[m.role] = selected[0];
     sendReferences();
   }

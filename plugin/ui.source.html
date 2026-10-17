@@ -103,6 +103,12 @@
   .reference-slot strong,.reference-slot small { display: block; overflow-wrap: anywhere; }
   .reference-slot small { color: var(--tx2); margin: 4px 0 8px; }
   .reference-help { color: var(--tx2); font-size: 11px; }
+  .gemini-panel { height: 100%; overflow: auto; padding: 20px; background: var(--bg2); }
+  .gemini-card { max-width: 680px; margin: 0 auto; padding: 18px; border: 1px solid var(--bd); border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 12px; }
+  .gemini-card h2 { margin: 0; font-size: 15px; }
+  .gemini-card p { margin: 0; color: var(--tx2); }
+  .gemini-card textarea { height: 120px; resize: vertical; border: 1px solid var(--bd); border-radius: 8px; padding: 10px; white-space: pre-wrap; }
+  .gemini-state { padding: 10px; border-radius: 8px; background: var(--bg2); color: var(--tx2); white-space: pre-wrap; }
   header,.tabs,.devices,.bar,.aibar,footer { min-width: 0; flex-wrap: wrap; }
   .devices { max-width: 100%; }
   @media (max-width: 760px) {
@@ -161,6 +167,7 @@
   <div class="tabs">
     <button class="tab active" data-tab="preview">Preview</button>
     <button class="tab" data-tab="code">Code</button>
+    <button class="tab" data-tab="gemini">Gemini</button>
     <span class="spacer"></span>
     <div class="devices" id="devices">
       <label for="viewport">Width <input id="viewport" class="inp" type="number" min="320" max="4096" value="1280" style="width:76px;height:24px">px</label>
@@ -183,6 +190,18 @@
     </div>
     <div class="panel active" id="p-preview"><div class="stage" id="stage"><div class="frame" id="frame"><iframe id="prev"></iframe></div></div></div>
     <div class="panel" id="p-code"><textarea id="out" readonly spellcheck="false"></textarea></div>
+    <div class="panel" id="p-gemini">
+      <div class="gemini-panel">
+        <section class="gemini-card">
+          <h2>Gemini responsive review</h2>
+          <p id="gemini-connection">Checking backend Gemini configuration…</p>
+          <label for="ai-instruction">Optional instruction</label>
+          <textarea id="ai-instruction" maxlength="1000" placeholder="Example: Check mobile overflow, card stacking and tablet spacing. Preserve all content and layers."></textarea>
+          <div class="row"><button class="btn primary" id="run-ai" disabled>Run Gemini polish</button></div>
+          <div class="gemini-state" id="gemini-result" role="status" aria-live="polite">Generate code first, then run Gemini review.</div>
+        </section>
+      </div>
+    </div>
   </main>
 
   <footer>
@@ -205,6 +224,7 @@
   let formattedPage = '';
   let references = [], mergePending = false;
   let generationReady = false, compiledCss = '';
+  let aiAvailable = false;
   let backendLimit = 2000000;
   let generationRun = '', generationStarted = 0, eventQueue = Promise.resolve(), downloadUrl = '';
   const newRun = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
@@ -230,13 +250,19 @@
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'HTTP ' + response.status);
       backendLimit = Number(data.maxHtmlChars) || backendLimit;
+      aiAvailable = !!data.ai?.enabled;
       ai.disabled = !data.ai?.enabled;
       ai.checked = !!data.ai?.enabled;
       status.textContent = data.ai?.enabled ? `AI: ${data.ai.model} (server-side)` : 'AI: not configured — deterministic engine active';
+      $('gemini-connection').textContent = data.ai?.enabled ? `Connected · ${data.ai.model} · key secured on backend` : 'Gemini is not configured on the backend. Add GEMINI_API_KEY to hosting settings and redeploy.';
+      $('run-ai').disabled = !aiAvailable || !generationReady;
       $('backend-status').textContent = 'Backend connected';
     } catch (error) {
+      aiAvailable = false;
       ai.disabled = true; ai.checked = false;
       status.textContent = 'AI: backend unavailable';
+      $('gemini-connection').textContent = 'Backend unavailable: ' + error.message;
+      $('run-ai').disabled = true;
       $('backend-status').textContent = 'Backend unavailable: ' + error.message;
     }
   }
@@ -351,11 +377,33 @@
     $('zip').disabled = true;
     showErr(''); setLoading(true, 'Starting...');
     $('copy').disabled = true; $('copyfull').disabled = true;
+    $('run-ai').disabled = true;
+    $('gemini-result').textContent = 'Generating responsive code…';
     parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: $('rsp').checked && !$('exact').checked, images: $('img').checked, exact: $('exact').checked } } }, '*');
   };
   $('dbg').onclick = () => parent.postMessage({ pluginMessage: { type: 'debug' } }, '*');
   $('copy').onclick = () => { copy(html); toast('Body HTML copied'); };
   $('copyfull').onclick = async () => { copy(await formatHtml(fullPage())); toast('Full page copied'); };
+  $('run-ai').onclick = async () => {
+    if (!generationReady) return showErr('Generate responsive code before running Gemini.');
+    if (!aiAvailable) return showErr('Gemini is not configured on the backend.');
+    const button = $('run-ai'), state = $('gemini-result');
+    button.disabled = true; state.textContent = 'Gemini is reviewing responsive Tailwind utilities…'; showErr('');
+    try {
+      const result = await backendRequest('/api/refine', {
+        runId: newRun(), html: skeleton, instruction: $('ai-instruction').value.trim(), theme: configObject().theme.extend
+      });
+      compiledCss = result.css;
+      skeleton = await formatHtml(result.html);
+      html = await formatHtml(restoreHtml(skeleton));
+      await refreshViews();
+      state.textContent = `Complete · ${result.ai.model} · Preview and Code tabs updated.`;
+      toast('Gemini responsive polish applied');
+    } catch (error) {
+      state.textContent = 'Gemini failed: ' + error.message;
+      showErr('Gemini failed: ' + error.message);
+    } finally { button.disabled = !aiAvailable || !generationReady; }
+  };
 
   async function buildZip(runId) {
     const assets = [];
@@ -694,11 +742,13 @@
       skeleton = await formatHtml(result.html);
       html = await formatHtml(restoreHtml(skeleton));
       generationReady = true;
+      $('run-ai').disabled = !aiAvailable;
       setLoading(false);
       $('empty').style.display = 'none';
       await refreshViews();
       reportGeneration('done', references.length > 1 ? 'Responsive HTML ready' : 'Design HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
       fixMsg = result.ai?.applied ? `Responsive code polished by ${result.ai.model}` : (result.ai?.reason && $('ai').checked ? result.ai.reason : fixMsg);
+      $('gemini-result').textContent = result.ai?.applied ? `Automatic Gemini polish complete · ${result.ai.model}` : 'Responsive code ready. Open the Gemini tab for an optional focused review.';
       if (fixMsg) toast(fixMsg);
       } catch (error) {
         generationReady = false;
@@ -726,6 +776,7 @@
     $('copy').disabled = mergePending;
     $('copyfull').disabled = mergePending;
     $('zip').disabled = mergePending || !generationReady;
+    $('run-ai').disabled = !aiAvailable || !generationReady;
     renderStats();
   }
 
