@@ -157,9 +157,13 @@ test('mobile and desktop references can be captured separately and component set
   assert.match(messages.at(-1).msg, /Set both Mobile and Desktop/);
   figma.currentPage.selection = [desktop];
   await figma.ui.onmessage({ type: 'capture-reference', role: 'desktop' });
-  figma.currentPage.selection = [];
+  figma.currentPage.selection = [mobile];
   await vm.runInContext('generate({ responsive: false, exact: true })', ctx);
-  assert.deepEqual(Array.from(messages.findLast(message => message.type === 'result').references, ref => ref.width), [390, 1440]);
+  const exactResult = messages.findLast(message => message.type === 'result');
+  assert.deepEqual(Array.from(exactResult.references), []);
+  assert.equal(exactResult.width, 390);
+  assert.match(exactResult.html, /w-\[390px\]/);
+  figma.currentPage.selection = [];
   desktop.removed = true;
   await vm.runInContext('generate({ responsive: true })', ctx);
   assert.match(messages.at(-1).msg, /Set both Mobile and Desktop/);

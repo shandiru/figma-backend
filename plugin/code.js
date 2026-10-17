@@ -575,7 +575,9 @@ async function generate(opts) {
   if (opts.exact) opts.responsive = false;
   else if (!opts.responsive) opts.responsive = true;
   let selection = [...figma.currentPage.selection];
-  if (referenceSlots.mobile || referenceSlots.desktop) {
+  // Exact mode always exports the current single selection. Saved responsive
+  // references must never override a pixel-accurate one-frame export.
+  if (!opts.exact && (referenceSlots.mobile || referenceSlots.desktop)) {
     const { mobile, desktop } = referenceSlots;
     if (!referenceNode(mobile) || !referenceNode(desktop)) return figma.ui.postMessage({ type: 'error', msg: 'Set both Mobile and Desktop references. Select each design and click its Use selection button, or clear the pair.' });
     if (mobile.id === desktop.id || mobile.width >= desktop.width) return figma.ui.postMessage({ type: 'error', msg: 'Mobile must be a different, narrower design than Desktop. Update the reference slots.' });

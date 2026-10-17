@@ -730,7 +730,8 @@
       }
       const paired = m.slots.mobile && m.slots.desktop;
       $('reference-summary').textContent = paired ? 'Pair ready. Generate builds mobile, tablet, desktop and XL from these two references.' : 'Save both references, or clear the pair to use the current canvas selection.';
-      if (m.slots.mobile || m.slots.desktop) { $('rsp').checked = true; $('exact').checked = false; }
+      // Saving a responsive pair must not silently turn off an Exact layout
+      // choice. The selected output mode remains under the user's control.
     }
     if (m.type === 'debug') { copy(m.json); toast('Layout debug copied (' + Math.round(m.json.length / 1024) + ' KB)'); }
     if (m.type === 'progress') { setLoading(true, m.msg); reportGeneration('progress', m.msg); }
