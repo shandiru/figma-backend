@@ -73,6 +73,22 @@ test('UI JavaScript parses; Express compiles, optionally polishes, and packages 
   assert.match(ui, /data-tab="gemini"/);
   assert.match(result, /ai: \$\('ai'\)\.checked/);
   assert.match(script, /backendRequest\('\/api\/refine'/);
+  assert.doesNotMatch(ui, /id="ai" checked/);
+  assert.match(ui, /id="pair-mode"/);
+});
+
+test('accuracy pair preserves separate mobile and desktop trees at the lg boundary', () => {
+  const ctx = context();
+  ctx.refs = [
+    { width: 390, html: '<main data-layer="Mobile" data-kind="FRAME"><h1>Phone design</h1></main>' },
+    { width: 1440, html: '<main data-layer="Desktop" data-kind="FRAME"><h1>Desktop design</h1></main>' }
+  ];
+  const result = vm.runInContext('preserveResponsive(refs)', ctx);
+  assert.match(result, /class="block lg:hidden"/);
+  assert.match(result, /class="hidden lg:block"/);
+  assert.match(result, /Phone design/);
+  assert.match(result, /Desktop design/);
+  assert.doesNotMatch(result, /data-layer|data-kind/);
 });
 
 test('phone and desktop card grids infer a two-column tablet without another frame', () => {

@@ -103,6 +103,7 @@
   .reference-slot strong,.reference-slot small { display: block; overflow-wrap: anywhere; }
   .reference-slot small { color: var(--tx2); margin: 4px 0 8px; }
   .reference-help { color: var(--tx2); font-size: 11px; }
+  .reference-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .gemini-panel { height: 100%; overflow: auto; padding: 20px; background: var(--bg2); }
   .gemini-card { max-width: 680px; margin: 0 auto; padding: 18px; border: 1px solid var(--bd); border-radius: 12px; background: var(--bg); display: flex; flex-direction: column; gap: 12px; }
   .gemini-card h2 { margin: 0; font-size: 15px; }
@@ -137,12 +138,19 @@
       <div class="reference-slot"><strong>Desktop reference</strong><small id="desktop-ref">No saved reference</small><button class="btn ghost" id="capture-desktop">Use selection as Desktop</button></div>
     </div>
     <span class="reference-help" id="reference-summary" role="status">Tablet and XL layouts are inferred from your references.</span>
-    <button class="btn ghost" id="clear-references">Clear saved pair</button>
+    <div class="reference-actions">
+      <label for="pair-mode">Pair output</label>
+      <select class="inp" id="pair-mode">
+        <option value="accuracy" selected>Accuracy (preserve both designs)</option>
+        <option value="merge">Smart merge (single DOM)</option>
+      </select>
+      <button class="btn ghost" id="clear-references">Clear saved pair</button>
+    </div>
   </section>
   <div class="bar">
     <label class="switch"><input type="checkbox" id="rsp" checked><span class="track"></span>Responsive</label>
     <label class="switch"><input type="checkbox" id="img" checked><span class="track"></span>Embed images</label>
-    <label class="switch" title="Optional server-side responsive code review"><input type="checkbox" id="ai" checked disabled><span class="track"></span>Gemini polish</label>
+    <label class="switch" title="Optional server-side rewrite. Keep off for maximum Figma accuracy."><input type="checkbox" id="ai" disabled><span class="track"></span>Auto Gemini</label>
     <label class="switch" title="Figma-la irukkura madhiriye pixel-perfect (responsive illa)"><input type="checkbox" id="exact"><span class="track"></span>Exact layout</label>
     <span class="spacer"></span>
     <button class="btn primary" id="gen"><span class="spin"></span><span id="genlabel">Generate</span></button>
@@ -305,8 +313,8 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       backendLimit = Number(data.maxHtmlChars) || backendLimit;
       aiAvailable = !!data.ai?.enabled;
       ai.disabled = !data.ai?.enabled;
-      ai.checked = !!data.ai?.enabled;
-      status.textContent = data.ai?.enabled ? `AI: ${data.ai.model} (server-side)` : 'AI: not configured — deterministic engine active';
+      if (!data.ai?.enabled) ai.checked = false;
+      status.textContent = data.ai?.enabled ? `AI: ${data.ai.model} ready (manual by default)` : 'AI: not configured — deterministic engine active';
       $('gemini-connection').textContent = data.ai?.enabled ? `Connected · ${data.ai.model} · key secured on backend` : 'Gemini is not configured on the backend. Add GEMINI_API_KEY to hosting settings and redeploy.';
       $('run-ai').disabled = !aiAvailable || !generationReady;
       $('backend-status').textContent = 'Backend connected';
@@ -733,6 +741,26 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     return { html: (css.length ? '<style>\n' + css.join('\n') + '\n</style>\n' : '') + readable(merged, 0), unmatched };
   }
 
+  // Accuracy mode keeps each measured Figma tree intact. Only one tree is
+  // rendered at a time, so unrelated mobile/desktop layers cannot be mispaired.
+  function preserveResponsive(refs) {
+    if (refs.length < 2) throw new Error('Accuracy mode needs mobile and desktop references');
+    const clean = (source) => source.replace(/\sdata-(?:layer|kind)="[^"]*"/g, '');
+    const views = refs.length === 2
+      ? [
+          { ref: refs[0], classes: 'block lg:hidden' },
+          { ref: refs[1], classes: 'hidden lg:block' }
+        ]
+      : [
+          { ref: refs[0], classes: 'block md:hidden' },
+          { ref: refs[1], classes: 'hidden md:block lg:hidden' },
+          { ref: refs[refs.length - 1], classes: 'hidden lg:block' }
+        ];
+    return views.map(({ ref, classes }) =>
+      `<div class="${classes}" data-responsive-source="${ref.width}">\n${clean(ref.html)}\n</div>`
+    ).join('\n');
+  }
+
   onmessage = async (e) => {
     const m = e.data.pluginMessage; if (!m) return;
     if (m.type === 'backend-settings' && m.settings) {
@@ -774,11 +802,15 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       else skeleton = '<!--SPRITE-->\n' + skeleton;
       frameW = m.width || 0; frameH = m.height || 0;
       if (mergePending) {
-        const merged = mergeResponsive(references, skeleton);
-        skeleton = skeleton.replace(references[references.length - 1].html, () => merged.html);
+        if ($('pair-mode').value === 'accuracy') {
+          skeleton = skeleton.replace(references[references.length - 1].html, () => preserveResponsive(references));
+        } else {
+          const merged = mergeResponsive(references, skeleton);
+          skeleton = skeleton.replace(references[references.length - 1].html, () => merged.html);
+          if (merged.unmatched) showErr(merged.unmatched + ' layers exist in only one reference or could not be matched. They keep their source viewport visibility. Review those sections in the preview.');
+        }
         html = restoreHtml(skeleton);
         mergePending = false;
-        if (merged.unmatched) showErr(merged.unmatched + ' layers exist in only one reference or could not be matched. They keep their source viewport visibility. Review those sections in the preview.');
       }
       if (frameW) {
         devW = frameW;

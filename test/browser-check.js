@@ -57,16 +57,22 @@ async function verifyReferencePair(browser, backend, out) {
   for (const width of [375, 640, 768, 1024, 1280, 1440, 1536, 1920]) {
     await page.locator('#viewport').fill(String(width));
     const value = await page.locator('#prev').evaluate(frame => {
-      const doc = frame.contentDocument, root = doc.querySelector('main');
-      return { width: frame.contentWindow.innerWidth, scroll: doc.documentElement.scrollWidth, rootWidth: root.getBoundingClientRect().width, headings: [...doc.querySelectorAll('h1')].filter(el => el.textContent.includes('Build something remarkable')).length, titleSize: parseFloat(getComputedStyle(root.querySelector('h1')).fontSize) };
+      const doc = frame.contentDocument;
+      const headings = [...doc.querySelectorAll('h1,h2,h3,h4,h5,h6')].filter(el => el.textContent.includes('Build something remarkable'));
+      const title = headings.find(el => el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0);
+      if (!title) return { width: frame.contentWindow.innerWidth, scroll: doc.documentElement.scrollWidth, rootWidth: 0, headings: 0, titleSize: 0 };
+      let wrapper = title;
+      while (wrapper && wrapper.parentElement !== doc.body) wrapper = wrapper.parentElement;
+      const root = wrapper && wrapper.firstElementChild;
+      return { width: frame.contentWindow.innerWidth, scroll: doc.documentElement.scrollWidth, rootWidth: root.getBoundingClientRect().width, headings: headings.filter(el => el.getBoundingClientRect().width > 0).length, titleSize: parseFloat(getComputedStyle(title).fontSize) };
     });
     assert.ok(value.scroll <= width, JSON.stringify(value));
     assert.equal(value.headings, 1, JSON.stringify(value));
     if (width >= 1440) assert.equal(value.rootWidth, 1440, JSON.stringify(value));
     measurements.push(value);
   }
-  assert.ok(measurements.find(x => x.width === 768).titleSize > measurements[0].titleSize);
-  assert.ok(measurements.find(x => x.width === 768).titleSize < measurements.find(x => x.width === 1440).titleSize);
+  assert.equal(measurements.find(x => x.width === 768).titleSize, measurements[0].titleSize);
+  assert.ok(measurements.find(x => x.width === 1440).titleSize > measurements[0].titleSize);
   const download = page.waitForEvent('download');
   await page.locator('#zip').click();
   await (await download).saveAs(path.join(out, 'paired-components.zip'));
@@ -74,7 +80,7 @@ async function verifyReferencePair(browser, backend, out) {
   fs.writeFileSync(path.join(out, 'paired-measurements.json'), JSON.stringify(measurements, null, 2));
   await page.screenshot({ path: path.join(out, 'paired-plugin.png'), fullPage: true });
   await page.close();
-  console.log('PASS: separate mobile component + desktop instance capture, renamed layers, tablet typography, XL container and ZIP.');
+  console.log('PASS: separate mobile component + desktop instance capture, exact responsive trees, XL container and ZIP.');
 }
 
 async function verifyMeasuredDesign(browser, backend, out, png) {
