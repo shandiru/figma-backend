@@ -1,8 +1,10 @@
 const JSZip = require('jszip');
 const { compileCss, exportTheme } = require('./compile');
+const { MAX_HTML_CHARS } = require('./config');
 
 async function createArchive({ html, theme, assets = [] }, stage = () => {}) {
-  if (typeof html !== 'string' || !html.trim() || html.length > 350000) throw new Error('Export needs HTML under 350000 characters');
+  if (typeof html !== 'string' || !html.trim()) throw new Error('Export needs HTML');
+  if (html.length > MAX_HTML_CHARS) throw new Error(`Export HTML exceeds the ${MAX_HTML_CHARS.toLocaleString()} character limit`);
   if (!Array.isArray(assets) || assets.length > 500) throw new Error('Export supports up to 500 assets');
   const safeTheme = exportTheme(theme);
   const zip = new JSZip();

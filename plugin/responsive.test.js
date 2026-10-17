@@ -58,7 +58,7 @@ function context(fixtures = {}) {
   return ctx;
 }
 
-test('UI JavaScript parses; Express compiles generation and packages exports without keys', () => {
+test('UI JavaScript parses; Express compiles, optionally polishes, and packages exports', () => {
   new vm.Script(script);
   const generate = script.slice(script.indexOf("  $('gen').onclick"), script.indexOf("  $('dbg').onclick"));
   const result = script.slice(script.indexOf("    if (m.type === 'result')"), script.indexOf('  function renderStats'));
@@ -68,7 +68,9 @@ test('UI JavaScript parses; Express compiles generation and packages exports wit
   assert.match(script, /backendRequest\('\/api\/events'/);
   assert.doesNotMatch(ui, /<script src="https:\/\/cdn\.jsdelivr/);
   assert.match(script, /\/api\/export/);
-  assert.doesNotMatch(script, /pluginkey|\/api\/refine|\$\('ai'\)/);
+  assert.doesNotMatch(script, /pluginkey|localStorage.*key/i);
+  assert.match(ui, /id="ai"/);
+  assert.match(result, /ai: \$\('ai'\)\.checked/);
 });
 
 test('phone and desktop card grids infer a two-column tablet without another frame', () => {
@@ -121,8 +123,8 @@ test('two references infer tablet typography and spacing while retaining the des
   ctx.mobile = new Element('p', 'Title Mobile', 'text-[28px] p-4 gap-4');
   ctx.desktop = new Element('p', 'Title Desktop', 'text-[64px] p-16 gap-12');
   const classes = vm.runInContext('mergeClassMaps([classMap(mobile), classMap(desktop)], [0, 3])', ctx);
-  assert.match(classes, /text-\[28px\] md:text-\[46px\] lg:text-\[64px\]/);
-  assert.match(classes, /md:pt-\[40px\] lg:pt-16/);
+  assert.match(classes, /text-\[28px\] sm:text-\[37px\] md:text-\[46px\] lg:text-\[64px\]/);
+  assert.match(classes, /sm:pt-\[28px\] md:pt-\[40px\] lg:pt-16/);
 });
 
 test('mobile and desktop references can be captured separately and component sets expand to variants', async () => {

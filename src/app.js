@@ -6,6 +6,8 @@ const { connect, enabled: dbEnabled } = require('./db');
 const Generation = require('./models/Generation');
 const { compileCss, exportTheme } = require('./compile');
 const { createArchive } = require('./export');
+const { refineHtml } = require('./gemini');
+const { GEMINI_API_KEY, GEMINI_MODEL, MAX_HTML_CHARS, MAX_ACTIVITY_OUTPUT_CHARS } = require('./config');
 const path = require('node:path');
 
 const app = express();
@@ -20,7 +22,7 @@ const upsertMemoryLog = (entry) => {
 };
 
 app.use(cors({ origin: '*', methods: ['GET', 'POST', 'OPTIONS'], allowedHeaders: ['Content-Type'], maxAge: 86400 }));
-app.use(express.json({ limit: '8mb' }));
+app.use(express.json({ limit: '12mb' }));
 const limiter = (limit, msg) => rateLimit({ windowMs: 60 * 1000, limit, standardHeaders: true, legacyHeaders: false, message: { error: msg } });
 app.use(limiter(120, 'Too many requests. Wait a minute and try again.'));
 
@@ -56,7 +58,7 @@ async function status() {
       ]);
     } catch (e) { db = 'error: ' + e.message; }
   }
-  return { ok: true, engine: 'figma-rules', db, breakpoints: { sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536 } };
+  return { ok: true, engine: 'figma-rules', ai: { enabled: !!GEMINI_API_KEY, model: GEMINI_MODEL }, db, maxHtmlChars: MAX_HTML_CHARS, breakpoints: { sm: 640, md: 768, lg: 1024, xl: 1280, '2xl': 1536 } };
 }
 
 async function recentLogs(limit = 25, includeOutput = true) {
@@ -101,20 +103,29 @@ function operationLog(kind, runId) {
 
 const validRun = (value) => typeof value === 'string' && /^[a-zA-Z0-9-]{8,100}$/.test(value);
 app.post('/api/generate', limiter(15, 'Generation limit reached. Wait a minute.'), async (req, res) => {
-  const { html, theme, runId } = req.body || {};
-  if (!validRun(runId) || typeof html !== 'string' || !html.trim() || html.length > 350000) return res.status(400).json({ error: 'Provide a runId and HTML under 350000 characters' });
+  const { html, theme, runId, ai } = req.body || {};
+  if (!validRun(runId)) return res.status(400).json({ error: 'A valid runId is required' });
+  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'HTML is required' });
+  if (html.length > MAX_HTML_CHARS) return res.status(413).json({ error: `HTML is ${html.length.toLocaleString()} characters; the maximum is ${MAX_HTML_CHARS.toLocaleString()}. Split the design into smaller matching sections.` });
   let safeTheme;
   try { safeTheme = exportTheme(theme); }
   catch (error) { return res.status(400).json({ error: error.message }); }
   const started = Date.now(), { entry, stage } = operationLog('generate', runId);
   try {
     stage('Cleaning semantic HTML and Tailwind utilities');
-    const result = fixHtml(html);
+    let result = fixHtml(html);
+    let aiResult = { applied: false, reason: ai ? 'Gemini was not requested correctly' : 'AI polish is off' };
+    if (ai === true) {
+      stage(`Polishing responsive markup with ${GEMINI_MODEL}`);
+      aiResult = await refineHtml(result.html);
+      if (aiResult.applied) result = fixHtml(aiResult.html);
+      else stage(aiResult.reason);
+    }
     stage('Compiling mobile, sm, md, lg, xl and 2xl styles');
     const css = await compileCss(result.html, safeTheme);
     stage('Responsive HTML and compiled CSS ready');
     await finishLog(entry, { output: result.html, outputChars: result.html.length, inputChars: html.length, ms: Date.now() - started });
-    res.json({ html: result.html, css, stats: result.stats, runId });
+    res.json({ html: result.html, css, stats: result.stats, runId, ai: { applied: aiResult.applied, reason: aiResult.reason, model: GEMINI_MODEL } });
   } catch (error) {
     await finishLog(entry, { ok: false, error: error.message, ms: Date.now() - started });
     res.status(500).json({ error: error.message });
@@ -139,7 +150,7 @@ app.post('/api/export', limiter(10, 'Export limit reached. Wait a minute.'), asy
 app.post('/api/events', async (req, res) => {
   const { runId, kind, phase, stage, output, ms } = req.body || {};
   if (typeof runId !== 'string' || !/^[a-zA-Z0-9-]{8,100}$/.test(runId) || !['generate', 'export'].includes(kind) || !['started', 'progress', 'done', 'error'].includes(phase)) return res.status(400).json({ error: 'Invalid activity event' });
-  if (output !== undefined && (typeof output !== 'string' || output.length > 350000)) return res.status(400).json({ error: 'Activity output exceeds 350000 characters' });
+  if (output !== undefined && (typeof output !== 'string' || output.length > MAX_ACTIVITY_OUTPUT_CHARS)) return res.status(400).json({ error: `Activity output exceeds ${MAX_ACTIVITY_OUTPUT_CHARS.toLocaleString()} characters` });
   const id = 'plugin-' + runId;
   const previous = memoryLogs.find((entry) => entry._id === id);
   const timestamp = new Date();
@@ -159,7 +170,8 @@ app.post('/api/events', async (req, res) => {
 // Compile the current markup on Express.
 app.post('/api/compile', limiter(10, 'Export limit reached. Wait a minute.'), async (req, res) => {
   const { html, theme } = req.body || {};
-  if (typeof html !== 'string' || !html.trim() || html.length > 350000) return res.status(400).json({ error: 'Export needs HTML under 350000 characters' });
+  if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'HTML is required' });
+  if (html.length > MAX_HTML_CHARS) return res.status(413).json({ error: `HTML exceeds the ${MAX_HTML_CHARS.toLocaleString()} character limit` });
   let safeTheme;
   try { safeTheme = exportTheme(theme); }
   catch (error) { return res.status(400).json({ error: error.message }); }

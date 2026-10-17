@@ -63,8 +63,8 @@
   main { flex: 1; min-height: 0; position: relative; }
   .panel { position: absolute; inset: 0; display: none; }
   .panel.active { display: block; }
-  .stage { height: 100%; overflow: auto; padding: 16px; background: var(--bg2); background-image: radial-gradient(var(--bd) 1px, transparent 1px); background-size: 14px 14px; }
-  .frame { margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 0 0 1px var(--bd), 0 8px 24px rgba(0,0,0,.12); overflow: hidden; }
+  .stage { height: 100%; min-width: 0; overflow-x: hidden; overflow-y: auto; scrollbar-gutter: stable; padding: 16px; background: var(--bg2); background-image: radial-gradient(var(--bd) 1px, transparent 1px); background-size: 14px 14px; }
+  .frame { max-width: 100%; margin: 0 auto; background: #fff; border-radius: 10px; box-shadow: 0 0 0 1px var(--bd), 0 8px 24px rgba(0,0,0,.12); overflow: hidden; }
   .frame iframe { border: 0; display: block; background: #fff; transform-origin: top left; }
   textarea { width: 100%; height: 100%; resize: none; border: 0; outline: none; padding: 14px; background: var(--bg); color: var(--tx); font: 11.5px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre; tab-size: 2; }
 
@@ -103,8 +103,13 @@
   .reference-slot strong,.reference-slot small { display: block; overflow-wrap: anywhere; }
   .reference-slot small { color: var(--tx2); margin: 4px 0 8px; }
   .reference-help { color: var(--tx2); font-size: 11px; }
-  .tabs,.devices,.bar,footer { flex-wrap: wrap; }
+  header,.tabs,.devices,.bar,.aibar,footer { min-width: 0; flex-wrap: wrap; }
   .devices { max-width: 100%; }
+  @media (max-width: 760px) {
+    .reference-grid { grid-template-columns: 1fr; }
+    .bar { gap: 10px; }
+    .devices { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  }
 </style>
 </head>
 <body>
@@ -131,6 +136,7 @@
   <div class="bar">
     <label class="switch"><input type="checkbox" id="rsp" checked><span class="track"></span>Responsive</label>
     <label class="switch"><input type="checkbox" id="img" checked><span class="track"></span>Embed images</label>
+    <label class="switch" title="Optional server-side responsive code review"><input type="checkbox" id="ai" checked disabled><span class="track"></span>Gemini polish</label>
     <label class="switch" title="Figma-la irukkura madhiriye pixel-perfect (responsive illa)"><input type="checkbox" id="exact"><span class="track"></span>Exact layout</label>
     <span class="spacer"></span>
     <button class="btn primary" id="gen"><span class="spin"></span><span id="genlabel">Generate</span></button>
@@ -139,6 +145,7 @@
     <span class="aitag">Express</span>
     <span>HTML + Tailwind</span>
     <span>Original design sizes and spacing. Add mobile + desktop for responsive output.</span>
+    <span id="ai-status">Checking AI availability…</span>
     <span class="spacer"></span>
   </div>
   <details class="aibar">
@@ -146,7 +153,7 @@
     <label for="apiurl">Backend URL</label><input class="inp grow" id="apiurl" value="https://figma-backend-xi.vercel.app" type="url">
     <label><input id="logbackend" type="checkbox" checked> Show Generate / ZIP activity and code on backend dashboard</label>
     <button class="btn ghost" id="dashboard">Open dashboard</button>
-    <span>Express compiles responsive CSS and packages your ZIP. No keys required.</span>
+    <span>Express compiles responsive CSS and packages your ZIP. Gemini keys stay in backend environment variables and are never stored in this plugin.</span>
   </details>
   <div class="aibar" role="status" aria-live="polite"><span id="pipeline-status">Ready to generate</span><span class="spacer"></span><span id="backend-status">Dashboard ready ? Generate to start</span></div>
   <div id="err"></div>
@@ -251,6 +258,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
   let formattedPage = '';
   let references = [], mergePending = false;
   let generationReady = false, compiledCss = '';
+  let backendLimit = 2000000;
   let generationRun = '', generationStarted = 0, eventQueue = Promise.resolve(), downloadUrl = '';
   const newRun = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
   function backendUrl() {
@@ -267,6 +275,23 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'Backend HTTP ' + response.status);
     return data;
+  }
+  async function probeBackend() {
+    const ai = $('ai'), status = $('ai-status');
+    try {
+      const response = await fetch(backendUrl() + '/api/health', { signal: AbortSignal.timeout(6000) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'HTTP ' + response.status);
+      backendLimit = Number(data.maxHtmlChars) || backendLimit;
+      ai.disabled = !data.ai?.enabled;
+      ai.checked = !!data.ai?.enabled;
+      status.textContent = data.ai?.enabled ? `AI: ${data.ai.model} (server-side)` : 'AI: not configured — deterministic engine active';
+      $('backend-status').textContent = 'Backend connected';
+    } catch (error) {
+      ai.disabled = true; ai.checked = false;
+      status.textContent = 'AI: backend unavailable';
+      $('backend-status').textContent = 'Backend unavailable: ' + error.message;
+    }
   }
   function reportActivity(kind, runId, phase, stage, extra = {}) {
     $('pipeline-status').textContent = stage;
@@ -288,6 +313,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     parent.postMessage({ pluginMessage: { type: 'save-backend-settings', settings: { url: $('apiurl').value.trim(), logging: $('logbackend').checked } } }, '*');
   }
   for (const id of ['apiurl', 'logbackend']) $(id).addEventListener('change', saveConnection);
+  $('apiurl').addEventListener('change', probeBackend);
   $('dashboard').onclick = () => {
     try { parent.postMessage({ pluginMessage: { type: 'open-dashboard', url: backendUrl() } }, '*'); }
     catch (error) { showErr(error.message); }
@@ -311,7 +337,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     return prettier.format(source, { parser: 'html', plugins: prettierPlugins, tabWidth: 2, printWidth: 100, htmlWhitespaceSensitivity: 'ignore' });
   }
   function fullPage() {
-    return '<!DOCTYPE html>\n<html lang="en">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Design</title>\n  ' + fontLinks() + '<style data-compiled>' + compiledCss + '</style>\n  ' + '</head>\n<body class="m-0">\n' + html + '</body>\n</html>';
+    return '<!DOCTYPE html>\n<html lang="en" class="max-w-full overflow-x-hidden">\n<head>\n  <meta charset="UTF-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n  <title>Design</title>\n  ' + fontLinks() + '<style data-compiled>' + compiledCss + '</style>\n  ' + '</head>\n<body class="m-0 max-w-full overflow-x-hidden">\n' + html + '</body>\n</html>';
   }
   function copy(text) {
     const t = document.createElement('textarea'); t.value = text; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove();
@@ -325,7 +351,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
   let previewObserver;
   function layoutPreview() {
     const stage = $('stage'), f = $('prev'), fr = $('frame');
-    const availW = Math.max(1, stage.clientWidth - 32), availH = Math.max(1, stage.clientHeight - 32);
+    const availW = Math.max(1, stage.clientWidth - 34), availH = Math.max(1, stage.clientHeight - 32);
     const k = Math.min(1, availW / devW);
     f.style.width = devW + 'px';
     const body = f.contentDocument && f.contentDocument.body;
@@ -533,9 +559,10 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
         // A supplied tablet reference always takes priority over this inference.
         if (group === 'grid-cols' && maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && maps[0].get(group) === 'grid-cols-1' && /^grid-cols-(?:[3-9]|1[0-2])$/.test(maps[1].get(group) || '')) value = 'grid-cols-2';
         if (group === 'grid-cols' && maps.length === 2 && active === 0 && i > 2 && starts[1] > i && previous === 'grid-cols-2') value = previous;
-        if (maps.length === 2 && active === 0 && i === 2 && starts[1] > 2 && (group === 'font-size' || group === 'leading' || /^(?:p[trbl]|gap(?:-[xy])?)$/.test(group))) {
+        if (maps.length === 2 && active === 0 && i > 0 && i < starts[1] && (group === 'font-size' || group === 'leading' || /^(?:p[trbl]|gap(?:-[xy])?)$/.test(group))) {
           const mobile = numericUtility(maps[0].get(group), group), desktop = numericUtility(maps[1].get(group), group);
-          if (mobile !== null && desktop !== null && mobile !== desktop) value = `${group === 'font-size' ? 'text' : group}-[${Math.round((mobile + desktop) / 2)}px]`;
+          const progress = i / (starts[1] + 1);
+          if (mobile !== null && desktop !== null && mobile !== desktop) value = `${group === 'font-size' ? 'text' : group}-[${Math.round(mobile + (desktop - mobile) * progress)}px]`;
         }
         // Inherit between measured layouts; do not manufacture classes at every breakpoint.
         if (value && value !== previous) output.push(VARIANTS[i] + value);
@@ -664,6 +691,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       $('apiurl').value = m.settings.url || $('apiurl').value;
       $('logbackend').checked = m.settings.logging !== false;
       $('backend-status').textContent = 'Dashboard ready - Generate to send activity';
+      probeBackend();
     }
     if (m.type === 'selection') {
       $('dot').classList.toggle('on', m.count > 0);
@@ -713,7 +741,8 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       fixMsg = 'Design code compiled by Express';
       reportGeneration('progress', 'Sending responsive markup to Express');
       await eventQueue;
-      const result = await backendRequest('/api/generate', { runId: generationRun, html: skeleton, theme: configObject().theme.extend });
+      if (skeleton.length > backendLimit) throw new Error(`Generated HTML is ${skeleton.length.toLocaleString()} characters; backend maximum is ${backendLimit.toLocaleString()}. Select smaller matching frames or simplify deeply nested layers.`);
+      const result = await backendRequest('/api/generate', { runId: generationRun, html: skeleton, theme: configObject().theme.extend, ai: $('ai').checked && !$('ai').disabled });
       compiledCss = result.css;
       skeleton = await formatHtml(result.html);
       html = await formatHtml(restoreHtml(skeleton));
@@ -722,13 +751,14 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       $('empty').style.display = 'none';
       await refreshViews();
       reportGeneration('done', references.length > 1 ? 'Responsive HTML ready' : 'Design HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
+      fixMsg = result.ai?.applied ? `Responsive code polished by ${result.ai.model}` : (result.ai?.reason && $('ai').checked ? result.ai.reason : fixMsg);
       if (fixMsg) toast(fixMsg);
       } catch (error) {
         generationReady = false;
         $('zip').disabled = true;
         setLoading(false);
         $('copy').disabled = true; $('copyfull').disabled = true;
-        showErr('Could not combine the selected designs: ' + (error.message || error));
+        showErr('Generation failed: ' + (error.message || error));
         reportGeneration('error', error.message || String(error));
       }
     }
@@ -759,6 +789,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
   }
 
   parent.postMessage({ pluginMessage: { type: 'ready' } }, '*');
+  probeBackend();
 </script>
 </body>
 </html>
