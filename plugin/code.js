@@ -177,6 +177,16 @@ function sizeClasses(n, parent, opts, isRoot) {
   const c = [];
   if (opts.exact) {   // Exact mode: Figma-la irukkura x/y/size apdiye
     if (isRoot || !parent) return ['relative', 'mx-auto', sp('w', n.width), sp('h', n.height)];
+    const auto = parent.layoutMode && parent.layoutMode !== 'NONE' && n.layoutPositioning !== 'ABSOLUTE';
+    if (auto) {
+      const horizontal = parent.layoutMode === 'HORIZONTAL';
+      if (n.layoutSizingHorizontal === 'FILL' || n.layoutGrow === 1) c.push(horizontal ? 'flex-1' : 'w-full');
+      else if (n.layoutSizingHorizontal === 'HUG' || n.textAutoResize === 'WIDTH_AND_HEIGHT') c.push('w-fit');
+      else c.push(sp('w', n.width), 'shrink-0');
+      if (n.layoutSizingVertical === 'FILL') c.push(horizontal ? 'self-stretch' : 'flex-1');
+      else if (n.layoutSizingVertical !== 'HUG' && !(n.type === 'TEXT' && n.textAutoResize === 'HEIGHT')) c.push(sp('h', n.height));
+      return c;
+    }
     const G = geomOf(n, parent);
     const grp = parent.type === 'GROUP' && !G.rot;
     c.push('absolute', sp('left', G.x - (grp ? parent.x : 0)), sp('top', G.y - (grp ? parent.y : 0)));
@@ -503,7 +513,8 @@ async function renderNode(n, parent, opts, depth, ctx) {
 
   const sz = sizeClasses(n, parent, opts, isRoot);
   const kids = n.children || [];
-  const c = [...sz, ...(opts.exact ? [] : flexClasses(n, opts, isRoot))];
+  const usesAutoLayout = n.layoutMode && n.layoutMode !== 'NONE';
+  const c = [...sz, ...(!opts.exact || usesAutoLayout ? flexClasses(n, opts, isRoot) : [])];
   const needsRel = opts.exact || ((opts.annotate || opts.preserve) && (!n.layoutMode || n.layoutMode === 'NONE')) || kids.some((k) => isOverlay(k, n));
   if (needsRel && !sz.includes('absolute') && !sz.includes('relative')) c.push('relative');
   const vis = await visualClasses(n, opts, ctx);
@@ -557,6 +568,12 @@ function sendReferences() {
 
 async function generate(opts) {
   opts = { ...opts };
+  opts.exact = !!opts.exact;
+  opts.responsive = !!opts.responsive;
+  // The UI exposes two modes. Responsive is the safe default if an older UI
+  // sends neither flag; Exact always wins when explicitly selected.
+  if (opts.exact) opts.responsive = false;
+  else if (!opts.responsive) opts.responsive = true;
   let selection = [...figma.currentPage.selection];
   if (referenceSlots.mobile || referenceSlots.desktop) {
     const { mobile, desktop } = referenceSlots;
@@ -573,7 +590,6 @@ async function generate(opts) {
   if (multi && (sel.length > 3 || sel.some((n) => !referenceNode(n)) || new Set(sel.map((n) => Math.round(n.width))).size !== sel.length)) {
     return figma.ui.postMessage({ type: 'error', msg: 'Select 2 or 3 matching designs at different widths: mobile, optional tablet, desktop.' });
   }
-  if (opts.exact) opts.responsive = false;
   const ctx = { fonts: {}, imgCls: {}, imgN: 0, imgSize: {}, bytes: {}, svgP: {}, syms: {}, symDefs: [], symN: 0, maskCls: {}, maskKey: {}, maskN: 0 };
   try {
     say('Exporting icons & images...');
@@ -581,9 +597,16 @@ async function generate(opts) {
     say('Building HTML...');
     const references = [];
     for (const n of sel) {
-      // Measure supplied designs without heuristic scaling; the UI merges their layers locally.
+      // Multi-viewport references must preserve measured geometry before the UI
+      // merges them. A single Responsive selection uses the fluid layout engine;
+      // a single Exact selection keeps its original pixel geometry.
       ctx.h1 = 0;
-      const markup = await toHtml(n, null, { ...opts, preserve: true, fluidCoordinates: opts.responsive && !opts.exact, responsive: false, annotate: multi }, 0, ctx);
+      const renderOpts = multi
+        ? { ...opts, preserve: true, fluidCoordinates: true, responsive: false, exact: false, annotate: true }
+        : opts.exact
+          ? { ...opts, preserve: false, fluidCoordinates: false, responsive: false, exact: true, annotate: false }
+          : { ...opts, preserve: false, fluidCoordinates: false, responsive: true, exact: false, annotate: false };
+      const markup = await toHtml(n, null, renderOpts, 0, ctx);
       references.push({ name: n.name, width: Math.round(n.width), height: Math.round(n.height), html: markup });
     }
     const counts = new Map(), colors = {};

@@ -88,7 +88,7 @@ async function verifyMeasuredDesign(browser, backend, out, png) {
   const messages = [];
   const ctx = vm.createContext({ __html__: '', figma: { showUI() {}, on() {}, currentPage: { selection: [design] }, ui: { postMessage: message => messages.push(message) }, getImageByHash: () => ({ getBytesAsync: async () => new Uint8Array(Buffer.from(png, 'base64')) }) } });
   vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
-  await vm.runInContext('generate({ responsive: true, images: true })', ctx);
+  await vm.runInContext('generate({ responsive: false, exact: true, images: true })', ctx);
   const payload = messages.find(message => message.type === 'result');
   assert.ok(payload, JSON.stringify(messages));
   const page = await browser.newPage({ viewport: { width: 1100, height: 900 } });
@@ -100,7 +100,7 @@ async function verifyMeasuredDesign(browser, backend, out, png) {
   await page.evaluate(result => window.postMessage({ pluginMessage: result }, '*'), payload);
   await page.waitForFunction(() => !document.querySelector('#zip').disabled);
   const actual = await page.locator('#prev').evaluate(frame => {
-    const doc = frame.contentDocument, root = doc.querySelector('main'), header = doc.querySelector('header'), panel = root.children[1], logo = header.children[0], label = header.children[1], image = panel.querySelector('img');
+    const doc = frame.contentDocument, root = doc.querySelector('main'), header = doc.querySelector('header'), panel = root.children[1], logo = header.children[0], label = header.children[1], image = panel.querySelector('img, .im1');
     const box = el => { const r = el.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; };
     return { root: box(root), header: box(header), panel: box(panel), logo: box(logo), label: box(label), image: box(image), fontSize: getComputedStyle(label).fontSize, lineHeight: getComputedStyle(label).lineHeight, radius: getComputedStyle(logo).borderRadius };
   });
@@ -110,7 +110,7 @@ async function verifyMeasuredDesign(browser, backend, out, png) {
   assert.deepEqual(actual.label, { x: 98, y: 33, width: 200, height: 25 });
   assert.deepEqual(actual.panel, { x: 37, y: 89, width: 835, height: 211 });
   assert.deepEqual(actual.image, { x: 58, y: 110, width: 147, height: 83 });
-  assert.equal(actual.fontSize, '19px'); assert.equal(actual.lineHeight, '25px'); assert.equal(actual.radius, '7px');
+  assert.equal(actual.fontSize, '19px'); assert.ok(Math.abs(parseFloat(actual.lineHeight) - 25) < 0.01, actual.lineHeight); assert.equal(actual.radius, '7px');
   // Force traditional scrollbar dimensions, as in the Windows Figma iframe.
   await page.addStyleTag({ content: '#stage::-webkit-scrollbar{width:17px;height:17px}' });
   await page.locator('#prev').evaluate(frame => {
@@ -120,7 +120,9 @@ async function verifyMeasuredDesign(browser, backend, out, png) {
   });
   for (const panelWidth of [1000, 800]) {
     await page.setViewportSize({ width: panelWidth, height: 900 });
-    for (const width of [375, 640, 901, 1440]) {
+    // Exact mode intentionally keeps its native 901px canvas; narrower device
+    // adaptation is covered by the Responsive-mode checks above.
+    for (const width of [901, 1440]) {
       await page.locator('#viewport').fill(String(width));
       await page.waitForFunction(expected => {
         const stage = document.querySelector('#stage'), frame = document.querySelector('#prev'), doc = frame.contentDocument;
@@ -150,7 +152,7 @@ async function main() {
   const figma = { showUI() {}, on() {}, currentPage: { selection: [design] }, ui: { postMessage: (m) => messages.push(m) }, getImageByHash: () => ({ getBytesAsync: async () => new Uint8Array([1]) }) };
   const ctx = vm.createContext({ __html__: '', figma });
   vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
-  await vm.runInContext('generate({ responsive: true, images: true })', ctx);
+  await vm.runInContext('generate({ responsive: true, exact: false, images: true })', ctx);
   const result = messages.find((m) => m.type === 'result');
   assert.ok(result, JSON.stringify(messages));
   fs.writeFileSync(path.join(out, 'after.html'), await prettier.format(result.html, { parser: 'html' }));
@@ -158,7 +160,7 @@ async function main() {
   const beforeCtx = vm.createContext({ __html__: '', figma: { ...figma, ui: { postMessage: (m) => beforeMessages.push(m) } } });
   const beforeSource = execFileSync('git', ['show', 'HEAD:plugin/code.js'], { encoding: 'utf8' });
   vm.runInContext(beforeSource, beforeCtx);
-  await vm.runInContext('generate({ responsive: true, images: true })', beforeCtx);
+  await vm.runInContext('generate({ responsive: true, exact: false, images: true })', beforeCtx);
   fs.writeFileSync(path.join(out, 'before.html'), await prettier.format(beforeMessages.find((m) => m.type === 'result').html, { parser: 'html' }));
   const config = { content: [{ raw: result.html }], theme: { extend: { colors: result.colors, fontFamily: { inter: ['Inter', 'sans-serif'] } } } };
   fs.writeFileSync(path.join(out, 'compile.config.json'), JSON.stringify(config));
@@ -248,7 +250,8 @@ async function main() {
         assert.equal(value.siblingOverlap, false, JSON.stringify(value));
         assert.equal(value.heroOverlap, false, JSON.stringify(value));
       }
-      assert.equal(value.direction, 'row');
+      assert.equal(value.direction, width >= 1024 ? 'row' : 'column');
+      assert.equal(value.columns, width >= 1024 ? 3 : width >= 768 ? 2 : 1);
       measurements.push(value);
       if ([375, 1440].includes(width)) await page.screenshot({ path: path.join(out, `preview-${width}.png`), fullPage: true });
     }

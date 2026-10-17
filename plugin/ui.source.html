@@ -321,10 +321,10 @@
   window.addEventListener('resize', layoutPreview);
   layoutPreview();
 
-  $('rsp').onchange = () => { if ($('rsp').checked) $('exact').checked = false; };
+  $('rsp').onchange = () => { $('exact').checked = !$('rsp').checked; };
   for (const role of ['mobile', 'desktop']) $('capture-' + role).onclick = () => parent.postMessage({ pluginMessage: { type: 'capture-reference', role } }, '*');
   $('clear-references').onclick = () => parent.postMessage({ pluginMessage: { type: 'clear-references' } }, '*');
-  $('exact').onchange = () => { if ($('exact').checked) $('rsp').checked = false; };
+  $('exact').onchange = () => { $('rsp').checked = !$('exact').checked; };
   document.querySelectorAll('.tab').forEach((b) => b.onclick = () => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'p-' + b.dataset.tab));

@@ -34,7 +34,7 @@ ZIP contents: `index.html`, `assets/tailwind.css`, `assets/images/*.webp`, `asse
 
 Accuracy is the default: spacing, font sizes, radii, fixed widths/heights and page padding retain their measured Figma values. Exact Tailwind scale equivalents are used when available; 17px stays 17px and 19px type stays 19px. Auto Layout retains flex direction, alignment, gaps, fixed/fill/hug sizing and wrapping. Free-positioned layers keep their original coordinates instead of being rearranged into inferred rows or grids.
 
-One selected design preserves that design at its native width. Supply mobile + desktop references to adapt between two intended layouts. A single fixed/freeform design does not provide enough information to reconstruct an unrelated phone layout.
+For one selected design, **Responsive** uses normal document flow, flex/grid stacking and breakpoint utilities; **Exact layout** preserves the design's original pixel geometry. Supply mobile + desktop references for the most accurate adaptation between two intended layouts. A single fixed/freeform design still cannot reveal every unrelated phone-layout decision.
 
 With two references, `sm` and `md` typography and spacing progressively interpolate between the measured mobile and desktop values; structural desktop changes start at `lg`, then carry through `xl` and `2xl` unless a later measured value changes them. On XL and wider screens the page can grow to the selected desktop design width instead of being capped at 1280px. A supplied tablet frame overrides inferred tablet values. Saved reference pairs automatically enable responsive output; clear them to generate an independent exact layout.
 

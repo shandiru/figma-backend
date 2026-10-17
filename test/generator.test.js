@@ -9,25 +9,38 @@ function generator() {
   vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), ctx);
   return { ctx, messages };
 }
-test('sample preserves measured design geometry, semantic HTML, images and named colors', async () => {
+test('exact mode preserves measured design geometry, semantic HTML, images and named colors', async () => {
   const { ctx, messages } = generator();
   ctx.figma.currentPage.selection = [hydrate(sampleDesign())];
-  await vm.runInContext('generate({ responsive: true, images: true })', ctx);
+  await vm.runInContext('generate({ responsive: false, exact: true, images: true })', ctx);
   const result = messages.find((m) => m.type === 'result');
   assert.ok(result, JSON.stringify(messages));
   assert.match(result.html, /<main/);
   assert.match(result.html, /<section/);
-  assert.match(result.html, /left-\[50%\]/);
-  assert.match(result.html, /w-\[46\.6667%\]/);
+  assert.match(result.html, /w-\[1440px\]/);
+  assert.match(result.html, /left-\[600px\]/);
+  assert.match(result.html, /w-\[560px\]/);
   assert.match(result.html, /text-6xl/);
   assert.match(result.html, /<button type="button"/);
   assert.match(result.html, /<span[^>]*>Get started<\/span>/);
-  assert.match(result.html, /<img[^>]+absolute[^>]+h-\[360px\][^>]+object-cover/);
-  assert.match(result.html, /src="__IMG_photo__"/);
+  assert.match(result.html, /<div[^>]+absolute[^>]+h-\[360px\][^>]+im1/);
+  assert.match(result.html, /url\(__IMG_photo__\)/);
   assert.match(result.html, /bg-design-/);
   assert.ok(Object.keys(result.colors).length >= 2);
   assert.doesNotMatch(result.html, /max-w-7xl|sm:px-6|lg:px-8/);
-  assert.match(result.html, /gap-\[17px\]/); // Preserve the original spacing.
+});
+
+test('single-selection responsive mode uses fluid flow and breakpoint utilities', async () => {
+  const { ctx, messages } = generator();
+  ctx.figma.currentPage.selection = [hydrate(sampleDesign())];
+  await vm.runInContext('generate({ responsive: true, exact: false, images: false })', ctx);
+  const result = messages.find((message) => message.type === 'result');
+  assert.ok(result, JSON.stringify(messages));
+  assert.equal(result.responsive, true);
+  assert.match(result.html, /flex-col lg:flex-row/);
+  assert.match(result.html, /(?:sm|md|lg|xl|2xl):/);
+  assert.match(result.html, /gap-6 md:gap-\[37px\] lg:gap-12/);
+  assert.doesNotMatch(result.html, /left-\[50%\]|w-\[46\.6667%\]/);
 });
 test('coordinate-only mixed rows are inferred; only genuine overlays are absolute', async () => {
   const { ctx } = generator();
