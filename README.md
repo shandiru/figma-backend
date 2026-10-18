@@ -1,6 +1,6 @@
 # Design to Tailwind
 
-Generate responsive HTML + Tailwind from Figma, then download a complete ZIP. The deterministic generator works without AI; an optional backend-only Gemini pass can conservatively polish responsive utilities.
+Generate exact responsive HTML + Tailwind from Figma, then download a complete ZIP. The deterministic generator works without AI; a configured backend-only Gemini pass runs automatically and conservatively polishes responsive utilities.
 
 ## Run
 
@@ -12,7 +12,7 @@ npm.cmd run build:plugin
 npm.cmd run dev
 ```
 
-For optional AI polish, set `GEMINI_API_KEY` directly in the hosting environment (for example, Vercel project environment variables). No `.env` file is used. Never place the key in plugin source or UI. `GEMINI_MODEL` defaults to `gemini-3.8-flash`.
+For automatic AI polish, set `GEMINI_API_KEY` directly in the hosting environment (for example, Vercel project environment variables). No `.env` file is required. Never place the key in plugin source or UI. `GEMINI_MODEL` defaults to `gemini-3.8-flash`.
 
 Import `backend/plugin/manifest.json` in Figma > Plugins > Development. The build also synchronizes the top-level `plugin/` copy.
 Open **Backend connection** in the plugin and set `http://localhost:3000` for local development, or your deployed backend HTTPS URL. The updated backend must be running for Generate and ZIP export.
@@ -21,26 +21,24 @@ For Vercel, set the project Root Directory to `backend` when deploying the outer
 
 ## Generate and download
 
-1. Select your mobile frame/section/component and click **Use selection as Mobile**. Select your desktop design and click **Use selection as Desktop**. The pair stays saved while you change the canvas selection. Alternatively, clear the saved pair, select both standalone designs together, and click Generate. Frames, Sections, Groups and component sets with two or three viewport variants are supported.
-2. Keep **Responsive** enabled and click **Generate**.
+1. Save the matching Mobile and Desktop frames. Optionally save a Tablet frame between their widths. Alternatively, clear the saved references, select all 2-3 standalone designs together, and click Generate. Frames, Sections, Groups and component sets are supported.
+2. Click **Generate**. Exact responsive mode is built in; there are no conflicting Responsive/Exact switches.
 3. Inspect mobile, sm (640), md (768), lg (1024), xl (1280), 2xl (1536), or enter a width from 320 to 4096px.
 4. Click **Download ZIP**. Use **Save ZIP** if the automatic download is blocked.
 
-The **Gemini** tab shows the backend/model connection state. After generation, add an optional focused instruction and click **Run Gemini polish**; successful output replaces the current Preview and Code results. The action is disabled with an explicit configuration message when the backend has no Gemini key.
+The status bar shows the backend/model connection state. Gemini is built into **Generate** and has no separate toggle or manual tab. Without a backend key, the same action completes with deterministic exact output.
 
-The plugin reads the Figma tree and exports original vector icons and image bytes. It matches shared layers using names, text content, compatible component/instance types and sibling structure, combines references into one HTML tree, and encodes raster images as WebP. Repeated generic Figma names are paired in order rather than automatically reported as errors. Express cleans HTML utilities, optionally runs the server-side Gemini repair pass, compiles Tailwind CSS, and packages the ZIP. No Tailwind runtime CDN is needed. If AI is unavailable, too slow, or the layout exceeds its bounded input size, generation safely falls back to deterministic output.
+The plugin reads the Figma tree and exports original vector icons and image bytes. It keeps supplied mobile, tablet and desktop trees separate and switches them at responsive breakpoints, preventing unrelated layers from being guessed or mismatched. Raster images are encoded as WebP. Express cleans HTML utilities, automatically runs the server-side Gemini repair pass when configured, compiles Tailwind CSS, and packages the ZIP. No Tailwind runtime CDN is needed. If AI is unavailable, too slow, or the layout exceeds its bounded input size, generation safely falls back to deterministic output.
 
 ZIP contents: `index.html`, `assets/tailwind.css`, `assets/images/*.webp`, `assets/icons/*.svg`, `tailwind.config.js`, `input.css`, and `README.txt`. CSS and assets work from disk. Google Fonts need internet; system fallback fonts work offline. Rebuild edited classes with Tailwind v3 using the included config and input CSS.
 
 ## Responsive behavior
 
-Accuracy is the default: spacing, font sizes, radii, fixed widths/heights and page padding retain their measured Figma values. Exact Tailwind scale equivalents are used when available; 17px stays 17px and 19px type stays 19px. Auto Layout retains flex direction, alignment, gaps, fixed/fill/hug sizing and wrapping. Free-positioned layers keep their original coordinates instead of being rearranged into inferred rows or grids.
+Exact responsive output is the default: spacing, font sizes, radii, fixed widths/heights, coordinates and page padding retain their measured Figma values. Exact Tailwind scale equivalents are used when available; 17px stays 17px and 19px type stays 19px. Auto Layout retains flex direction, alignment, gaps, fixed/fill/hug sizing and wrapping.
 
-For one selected design, **Responsive** uses normal document flow, flex/grid stacking and breakpoint utilities; **Exact layout** preserves the design's original pixel geometry. Supply mobile + desktop references for the most accurate adaptation between two intended layouts. A single fixed/freeform design still cannot reveal every unrelated phone-layout decision.
+A single selection exports one fixed exact frame. Two references render the mobile tree below `lg` and the desktop tree from `lg` upward. Three references render mobile below `md`, tablet from `md` to `lg`, and desktop from `lg` upward. Only one measured tree is visible at a time, so differently nested Figma frames cannot be incorrectly merged.
 
-With two references, `sm` and `md` typography and spacing progressively interpolate between the measured mobile and desktop values; structural desktop changes start at `lg`, then carry through `xl` and `2xl` unless a later measured value changes them. On XL and wider screens the page can grow to the selected desktop design width instead of being capped at 1280px. A supplied tablet frame overrides inferred tablet values. Saved reference pairs automatically enable responsive output; clear them to generate an independent exact layout.
-
-Use matching descriptive names and consistent nesting for shared layers. Unmatched layers are hidden outside their source viewport and flagged for review. Freeform compositions and different nesting can need manual adjustments. **Exact layout** exports one fixed frame; it cannot combine multiple references.
+Use the preview width field or presets to verify the exact reference widths. Supplying a real tablet reference is recommended when its composition differs from mobile; without one, mobile remains active until the desktop breakpoint.
 
 ## Live dashboard
 

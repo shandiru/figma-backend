@@ -103,7 +103,7 @@ function operationLog(kind, runId) {
 
 const validRun = (value) => typeof value === 'string' && /^[a-zA-Z0-9-]{8,100}$/.test(value);
 app.post('/api/generate', limiter(15, 'Generation limit reached. Wait a minute.'), async (req, res) => {
-  const { html, theme, runId, ai } = req.body || {};
+  const { html, theme, runId } = req.body || {};
   if (!validRun(runId)) return res.status(400).json({ error: 'A valid runId is required' });
   if (typeof html !== 'string' || !html.trim()) return res.status(400).json({ error: 'HTML is required' });
   if (html.length > MAX_HTML_CHARS) return res.status(413).json({ error: `HTML is ${html.length.toLocaleString()} characters; the maximum is ${MAX_HTML_CHARS.toLocaleString()}. Split the design into smaller matching sections.` });
@@ -114,8 +114,8 @@ app.post('/api/generate', limiter(15, 'Generation limit reached. Wait a minute.'
   try {
     stage('Cleaning semantic HTML and Tailwind utilities');
     let result = fixHtml(html);
-    let aiResult = { applied: false, reason: ai ? 'Gemini was not requested correctly' : 'AI polish is off' };
-    if (ai === true) {
+    let aiResult = { applied: false, reason: 'Gemini is not configured; exact deterministic output was used' };
+    if (GEMINI_API_KEY) {
       stage(`Polishing responsive markup with ${GEMINI_MODEL}`);
       aiResult = await refineHtml(result.html);
       if (aiResult.applied) result = fixHtml(aiResult.html);

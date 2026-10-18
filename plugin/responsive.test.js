@@ -58,7 +58,7 @@ function context(fixtures = {}) {
   return ctx;
 }
 
-test('UI JavaScript parses; Express compiles, optionally polishes, and packages exports', () => {
+test('UI JavaScript parses; exact responsive generation uses automatic backend polish and packages exports', () => {
   new vm.Script(script);
   const generate = script.slice(script.indexOf("  $('gen').onclick"), script.indexOf("  $('dbg').onclick"));
   const result = script.slice(script.indexOf("    if (m.type === 'result')"), script.indexOf('  function renderStats'));
@@ -69,12 +69,13 @@ test('UI JavaScript parses; Express compiles, optionally polishes, and packages 
   assert.doesNotMatch(ui, /<script src="https:\/\/cdn\.jsdelivr/);
   assert.match(script, /\/api\/export/);
   assert.doesNotMatch(script, /pluginkey|localStorage.*key/i);
-  assert.match(ui, /id="ai"/);
-  assert.match(ui, /data-tab="gemini"/);
-  assert.match(result, /ai: \$\('ai'\)\.checked/);
-  assert.match(script, /backendRequest\('\/api\/refine'/);
-  assert.doesNotMatch(ui, /id="ai" checked/);
-  assert.match(ui, /id="pair-mode"/);
+  assert.doesNotMatch(ui, /id="(?:ai|rsp|exact|pair-mode|run-ai)"/);
+  assert.doesNotMatch(ui, /data-tab="gemini"/);
+  assert.match(ui, /id="capture-tablet"/);
+  assert.match(generate, /responsive: true/);
+  assert.match(generate, /exact: true/);
+  assert.doesNotMatch(result, /ai: \$\('ai'\)/);
+  assert.doesNotMatch(script, /backendRequest\('\/api\/refine'/);
 });
 
 test('accuracy pair preserves separate mobile and desktop trees at the lg boundary', () => {
@@ -184,6 +185,23 @@ test('two separately designed Figma sections can generate one responsive referen
   const result = messages.find(message => message.type === 'result');
   assert.ok(result, JSON.stringify(messages));
   assert.deepEqual(Array.from(result.references, ref => ref.width), [390, 1440]);
+});
+
+test('exact responsive generation preserves mobile, tablet and desktop frame geometry', async () => {
+  const messages = [];
+  const frame = (id, width) => ({ id, name: id, type: 'FRAME', width, height: 800, x: 0, y: 0, layoutMode: 'NONE', children: [], fills: [], strokes: [] });
+  const selection = [frame('desktop', 1440), frame('mobile', 390), frame('tablet', 768)];
+  const figma = { showUI() {}, on() {}, currentPage: { selection }, ui: { postMessage: message => messages.push(message) } };
+  const ctx = vm.createContext({ __html__: '', figma });
+  vm.runInContext(fs.readFileSync(path.join(__dirname, 'code.js'), 'utf8'), ctx);
+  await vm.runInContext('generate({ responsive: true, exact: true, images: false })', ctx);
+  const result = messages.find(message => message.type === 'result');
+  assert.ok(result, JSON.stringify(messages));
+  assert.deepEqual(Array.from(result.references, ref => ref.width), [390, 768, 1440]);
+  assert.match(result.references[0].html, /w-\[390px\]/);
+  assert.match(result.references[1].html, /w-\[768px\]/);
+  assert.match(result.references[2].html, /w-\[1440px\]/);
+  assert.ok(result.references.every(ref => !/data-layer|data-kind/.test(ref.html)));
 });
 
 test('unmatched controls are hidden outside their source viewport and reported', () => {
