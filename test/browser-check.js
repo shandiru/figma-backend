@@ -69,6 +69,21 @@ async function main() {
     const html = await zip.file('index.html').async('string');
     assert.match(html, /w-\[1440px\]/);
     assert.doesNotMatch(html, /(?:sm|md|lg|xl|2xl):/);
+    assert.match(html, /<style data-compiled(?:="")?>/);
+    const exportedPage = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+    await exportedPage.route('https://**/*', route => route.abort());
+    await exportedPage.setContent(html, { waitUntil: 'domcontentloaded' });
+    const exported = await exportedPage.locator('main').evaluate(root => {
+      const photo = [...document.querySelectorAll('[style]')].find(element => element.style.backgroundImage.includes('placehold'));
+      return {
+        rootWidth: root.getBoundingClientRect().width,
+        rootHeight: root.getBoundingClientRect().height,
+        photoLeft: photo ? photo.getBoundingClientRect().left - root.getBoundingClientRect().left : null
+      };
+    });
+    assert.deepEqual(exported, { rootWidth: measured.rootWidth, rootHeight: measured.rootHeight, photoLeft: measured.photoLeft });
+    await exportedPage.screenshot({ path: path.join(output, 'exact-zip.png'), fullPage: true });
+    await exportedPage.close();
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.join(output, 'exact-plugin.png'), fullPage: true });
     await page.close();

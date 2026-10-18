@@ -360,7 +360,6 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       if (!url.startsWith('data:image/webp;base64,')) throw new Error('An image could not be encoded as WebP. Regenerate with images enabled.');
       const name = 'assets/images/' + key.replace(/[^a-zA-Z0-9_-]/g, '-') + '.webp';
       assets.push({ path: name, content: url.split(',')[1] });
-      page = page.split(url).join(name);
     }
     const doc = new DOMParser().parseFromString(page, 'text/html');
     for (const symbol of doc.querySelectorAll('symbol[id]')) {
@@ -371,16 +370,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       svg.innerHTML = symbol.innerHTML;
       const name = 'assets/icons/' + symbol.id + '.svg';
       assets.push({ path: name, content: new XMLSerializer().serializeToString(svg) });
-      for (const use of doc.querySelectorAll('use')) if (use.getAttribute('href') === '#' + symbol.id) {
-        const original = use.parentElement;
-        const img = doc.createElement('img');
-        for (const attr of original.attributes) img.setAttribute(attr.name, attr.value);
-        img.setAttribute('src', name); img.setAttribute('alt', '');
-        original.replaceWith(img);
-      }
     }
-    doc.querySelectorAll('svg[width="0"][height="0"]').forEach((el) => el.remove());
-    doc.querySelectorAll('style[data-compiled]').forEach((el) => el.remove());
     const response = await fetch(backendUrl() + '/api/export', {
       method: 'POST', signal: AbortSignal.timeout(60000),
       headers: { 'Content-Type': 'application/json' },

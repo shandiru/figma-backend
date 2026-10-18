@@ -17,13 +17,15 @@ test('Express generation and ZIP export preserve exact CSS and SVG assets', asyn
     assert.doesNotMatch(generated.html, /p-\[16px\]/);
     assert.match(generated.css, /min-width: 768px/);
     assert.match(generated.css, /min-width: 1024px/);
-    const html = '<!doctype html><html><head><title>Export</title></head><body>' + generated.html + '<img src="assets/icons/logo.svg" alt="Logo"></body></html>';
+    const html = '<!doctype html><html><head><title>Export</title><style data-compiled>' + generated.css + '</style></head><body>' + generated.html + '<img src="assets/icons/logo.svg" alt="Logo"></body></html>';
     const assets = [{ path: 'assets/icons/logo.svg', content: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10" fill="none"><path stroke="#fff" d="M0 0L10 10"/></svg>' }];
     const exported = await post('/api/export', { runId: 'keyless-export', html, assets });
     assert.equal(exported.status, 200);
     assert.match(exported.headers.get('content-type'), /application\/zip/);
     const zip = await JSZip.loadAsync(await exported.arrayBuffer());
-    assert.match(await zip.file('index.html').async('string'), /href="assets\/tailwind.css"/);
+    const index = await zip.file('index.html').async('string');
+    assert.match(index, /href="assets\/tailwind.css"/);
+    assert.match(index, /<style data-compiled(?:="")?>/);
     assert.match(await zip.file('assets/tailwind.css').async('string'), /grid-template-columns: repeat\(3/);
     assert.match(await zip.file('assets/icons/logo.svg').async('string'), /fill="none"/);
     const logs = (await (await fetch(base + '/api/logs')).json()).items;

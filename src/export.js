@@ -26,8 +26,10 @@ async function createArchive({ html, theme, assets = [] }, stage = () => {}) {
   }
   stage('Compiling exact Tailwind CSS');
   const css = await compileCss(html, safeTheme);
-  // Export receives a complete page from the plugin, with local asset paths.
-  const page = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style data-compiled>[\s\S]*?<\/style>/gi, '');
+  // Preserve the exact compiled preview CSS inline. This keeps index.html
+  // accurate even when it is opened directly from inside the downloaded ZIP.
+  // The separate stylesheet remains available after extraction.
+  const page = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
   if (!/<\/head>/i.test(page)) throw new Error('Export requires a complete HTML page');
   const output = page.replace(/<\/head>/i, '<link rel="stylesheet" href="assets/tailwind.css">\n</head>');
   zip.file('index.html', output);
