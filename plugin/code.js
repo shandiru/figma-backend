@@ -559,11 +559,11 @@ const referenceNode = (n) => n && !n.removed && ['FRAME', 'COMPONENT', 'INSTANCE
 async function generate(opts) {
   opts = { ...opts };
   opts.exact = true;
-  opts.responsive = true;
+  opts.responsive = false;
   let selection = [...figma.currentPage.selection];
-  const sel = selection.sort((a, b) => a.width - b.width);
-  if (sel.length !== 2 || sel.some(node => !referenceNode(node))) return figma.ui.postMessage({ type: 'error', msg: 'Exact responsive output-ku Mobile + Desktop rendu frames mattum select pannunga.' });
-  if (sel[0].id === sel[1].id || Math.round(sel[0].width) === Math.round(sel[1].width)) return figma.ui.postMessage({ type: 'error', msg: 'Mobile and Desktop frames must have different widths.' });
+  const sel = selection;
+  if (!sel.length) return figma.ui.postMessage({ type: 'error', msg: 'Oru Frame select pannunga.' });
+  if (sel.length !== 1 || !referenceNode(sel[0])) return figma.ui.postMessage({ type: 'error', msg: 'Exact layout-ku one Frame, Section, Component, Instance, or Group mattum select pannunga.' });
   const ctx = { fonts: {}, imgCls: {}, imgN: 0, imgSize: {}, bytes: {}, svgP: {}, syms: {}, symDefs: [], symN: 0, maskCls: {}, maskKey: {}, maskN: 0 };
   try {
     say('Exporting icons & images...');
@@ -571,7 +571,9 @@ async function generate(opts) {
     say('Building HTML...');
     const references = [];
     for (const n of sel) {
-      // Render both references independently with their measured geometry.
+      // Multi-viewport references must preserve measured geometry before the UI
+      // merges them. A single Responsive selection uses the fluid layout engine;
+      // a single Exact selection keeps its original pixel geometry.
       ctx.h1 = 0;
       const renderOpts = { ...opts, preserve: false, fluidCoordinates: false, responsive: false, exact: true, annotate: false };
       const markup = await toHtml(n, null, renderOpts, 0, ctx);
@@ -599,7 +601,7 @@ async function generate(opts) {
     const maskCss = Object.keys(ctx.maskKey).map((id) => `.${ctx.maskCls[id]}{background-image:url(__IMG_${ctx.maskKey[id]}__)}`);
     const fontCss = Object.keys(fonts).map((f) => `.${slug(f)}{font-family:"${cssEsc(f)}",${/mono|code|courier/i.test(f) ? 'monospace' : (/serif|playfair|merriweather|lora|georgia|times|garamond|cormorant|bodoni/i.test(f) && !/sans/i.test(f)) ? 'serif' : 'sans-serif'}}`);
     if (imageCss.length || maskCss.length || fontCss.length) head += '<style>' + imageCss.concat(maskCss, fontCss).join('') + '</style>\n';
-    figma.ui.postMessage({ type: 'result', html: head + desktop.html, fonts, colors, images, sizes, width: desktop.width, height: desktop.height, responsive: true, references });
+    figma.ui.postMessage({ type: 'result', html: head + desktop.html, fonts, colors, images, sizes, width: desktop.width, height: desktop.height, responsive: false, references: [] });
   } catch (e) {
     figma.ui.postMessage({ type: 'error', msg: String(e && e.stack ? e.stack : e) });
   }

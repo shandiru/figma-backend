@@ -1,6 +1,6 @@
 # Design to Tailwind
 
-Generate one responsive HTML + Tailwind page from exactly two selected Figma frames: Mobile and Desktop. Each frame is rendered independently with its measured geometry, so the source layouts are not merged, guessed, or rewritten. There is no AI pass.
+Generate a fixed, exact HTML + Tailwind copy of one selected Figma frame, then download a complete ZIP. There is no AI pass, responsive inference, viewport merging, or layout rewriting.
 
 ## Run
 
@@ -20,14 +20,14 @@ For Vercel, set the project Root Directory to `backend` when deploying the outer
 
 ## Generate and download
 
-1. Select exactly two matching Frames, Sections, Components, Instances, or Groups in Figma: a narrower Mobile design and a wider Desktop design.
+1. Select exactly one Frame, Section, Component, Instance, or Group in Figma.
 2. Click **Generate**.
-3. Use the Mobile and Desktop preview buttons to inspect both exact layouts, or open the Code tab.
+3. Inspect the exact preview or Code tab.
 4. Copy the body/full page, or click **Download ZIP**.
 
-The generator preserves measured x/y positions, widths, heights, padding, gaps, typography, colors, radii, image crops, vectors, Auto Layout properties, and free-positioned layers in both trees. Exact Tailwind scale equivalents are used when available; arbitrary values retain measurements such as 17px gaps, 19px type, or 7px radii.
+The generator preserves measured x/y positions, widths, heights, padding, gaps, typography, colors, radii, image crops, vectors, Auto Layout properties, and free-positioned layers. Exact Tailwind scale equivalents are used when available; arbitrary values retain measurements such as 17px gaps, 19px type, or 7px radii.
 
-The mobile tree is visible below the `lg` breakpoint and the desktop tree from `lg` upward. Only one exact tree is visible at a time.
+Multiple selected frames are rejected instead of being merged. Generate each mobile, tablet, or desktop frame separately when separate outputs are required.
 
 ZIP contents: `index.html`, `assets/tailwind.css`, `assets/images/*.webp`, `assets/icons/*.svg`, `tailwind.config.js`, `input.css`, and `README.txt`. CSS and assets work from disk. Google Fonts need internet; system fallback fonts work offline.
 

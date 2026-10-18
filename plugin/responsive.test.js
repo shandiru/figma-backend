@@ -21,39 +21,35 @@ function plugin(selection) {
   return { context, messages };
 }
 
-test('UI exposes exact Mobile + Desktop responsive flow with no AI controls', () => {
+test('UI exposes one exact-layout flow with no AI or responsive controls', () => {
   new vm.Script(script);
   const generate = script.slice(script.indexOf("$('gen').onclick"), script.indexOf("$('dbg').onclick"));
-  assert.match(generate, /responsive: true/);
+  assert.match(generate, /responsive: false/);
   assert.match(generate, /exact: true/);
-  assert.match(ui, /Exact Mobile \+ Desktop responsive output/);
-  assert.doesNotMatch(ui, /Auto Gemini|Gemini responsive/);
-  assert.doesNotMatch(ui, /id="(?:ai|rsp|exact|pair-mode|run-ai|capture-mobile|viewport)"/);
-  assert.match(ui, /id="preview-mobile"/);
-  assert.match(ui, /id="preview-desktop"/);
+  assert.match(ui, /Exact selected-frame output/);
+  assert.doesNotMatch(ui, /Auto Gemini|Gemini responsive|Mobile reference|Tablet reference|Desktop reference/);
+  assert.doesNotMatch(ui, /id="(?:ai|rsp|exact|pair-mode|run-ai|capture-mobile|viewport|devices)"/);
   assert.match(script, /backendRequest\('\/api\/generate'/);
   assert.match(script, /backendUrl\(\) \+ '\/api\/export'/);
   assert.doesNotMatch(script, /\/api\/refine/);
 });
 
-test('generation exports exact Mobile and Desktop reference trees', async () => {
-  const { context, messages } = plugin([frame('Desktop design', 1440), frame('Mobile design', 390)]);
-  await vm.runInContext('generate({ responsive: false, exact: false, images: false })', context);
+test('generation always exports one selected frame with exact measured geometry', async () => {
+  const { context, messages } = plugin([frame('Desktop design', 1440)]);
+  await vm.runInContext('generate({ responsive: true, exact: false, images: false })', context);
   const result = messages.find(message => message.type === 'result');
   assert.ok(result, JSON.stringify(messages));
   assert.equal(result.width, 1440);
-  assert.equal(result.responsive, true);
-  assert.deepEqual(Array.from(result.references, reference => reference.width), [390, 1440]);
-  assert.match(result.references[0].html, /w-\[390px\]/);
-  assert.match(result.references[1].html, /w-\[1440px\]/);
+  assert.equal(result.responsive, false);
+  assert.deepEqual(Array.from(result.references), []);
   assert.match(result.html, /relative mx-auto w-\[1440px\] max-w-full h-\[900px\]/);
   assert.doesNotMatch(result.html, /(?:sm|md|lg|xl|2xl):/);
 });
 
-test('generation requires exactly two differently-sized frames', async () => {
-  const { context, messages } = plugin([frame('Desktop', 1440)]);
+test('generation rejects multiple selections instead of combining layouts', async () => {
+  const { context, messages } = plugin([frame('Mobile', 390), frame('Desktop', 1440)]);
   await vm.runInContext('generate({ responsive: true, exact: false, images: false })', context);
   assert.equal(messages.at(-1).type, 'error');
-  assert.match(messages.at(-1).msg, /Mobile \+ Desktop/);
+  assert.match(messages.at(-1).msg, /one Frame/);
   assert.equal(messages.some(message => message.type === 'result'), false);
 });
