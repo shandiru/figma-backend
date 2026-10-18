@@ -19,7 +19,10 @@ async function main() {
 
   try {
     const messages = [];
-    const selected = hydrate(sampleDesign());
+    const selected = sampleDesign();
+    selected.width = 1920;
+    selected.height = 1080;
+    hydrate(selected);
     const figma = { showUI() {}, on() {}, currentPage: { selection: [selected] }, ui: { postMessage: message => messages.push(message) } };
     const context = vm.createContext({ __html__: '', figma });
     vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), context);
@@ -41,7 +44,7 @@ async function main() {
     await page.waitForFunction(() => !document.querySelector('#zip').disabled);
 
     assert.equal(await page.locator('#err').textContent(), '');
-    assert.equal(await page.locator('#design-size').textContent(), '1440 × 1100px');
+    assert.equal(await page.locator('#design-size').textContent(), '1920 × 1080px');
     assert.equal(await page.locator('#capture-mobile').count(), 0);
     assert.equal(await page.locator('#viewport').count(), 0);
     const measured = await page.locator('#prev').evaluate(frame => {
@@ -56,9 +59,9 @@ async function main() {
         photoLeft: photo ? photo.getBoundingClientRect().left - root.getBoundingClientRect().left : null
       };
     });
-    assert.equal(measured.frameWidth, 1440, JSON.stringify(measured));
-    assert.equal(measured.rootWidth, 1440, JSON.stringify(measured));
-    assert.equal(measured.rootHeight, 1100, JSON.stringify(measured));
+    assert.equal(measured.frameWidth, 1920, JSON.stringify(measured));
+    assert.equal(measured.rootWidth, 1920, JSON.stringify(measured));
+    assert.equal(measured.rootHeight, 1080, JSON.stringify(measured));
     assert.equal(measured.hasResponsiveClass, false, JSON.stringify(measured));
 
     const download = page.waitForEvent('download');
@@ -67,10 +70,10 @@ async function main() {
     await (await download).saveAs(zipPath);
     const zip = await JSZip.loadAsync(fs.readFileSync(zipPath));
     const html = await zip.file('index.html').async('string');
-    assert.match(html, /w-\[1440px\]/);
+    assert.match(html, /w-\[1920px\]/);
     assert.doesNotMatch(html, /(?:sm|md|lg|xl|2xl):/);
     assert.match(html, /<style data-compiled(?:="")?>/);
-    const exportedPage = await browser.newPage({ viewport: { width: 1440, height: 1100 } });
+    const exportedPage = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
     await exportedPage.route('https://**/*', route => route.abort());
     await exportedPage.setContent(html, { waitUntil: 'domcontentloaded' });
     const exported = await exportedPage.locator('main').evaluate(root => {
@@ -87,7 +90,7 @@ async function main() {
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.join(output, 'exact-plugin.png'), fullPage: true });
     await page.close();
-    console.log('PASS: one selected Figma frame preserves its exact 1440x1100 layout with no AI or responsive output.');
+    console.log('PASS: one selected Figma frame preserves its exact 1920x1080 desktop layout with no AI or responsive output.');
   } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));
