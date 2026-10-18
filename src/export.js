@@ -24,7 +24,7 @@ async function createArchive({ html, theme, assets = [] }, stage = () => {}) {
       zip.file(asset.path, asset.content);
     }
   }
-  stage('Compiling responsive Tailwind CSS');
+  stage('Compiling exact Tailwind CSS');
   const css = await compileCss(html, safeTheme);
   // Export receives a complete page from the plugin, with local asset paths.
   const page = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style data-compiled>[\s\S]*?<\/style>/gi, '');
@@ -34,7 +34,7 @@ async function createArchive({ html, theme, assets = [] }, stage = () => {}) {
   zip.file('assets/tailwind.css', css);
   zip.file('tailwind.config.js', 'module.exports = ' + JSON.stringify({ content: ['./index.html'], theme: { extend: safeTheme } }, null, 2) + ';\n');
   zip.file('input.css', '@tailwind base;\n@tailwind components;\n@tailwind utilities;\n');
-  zip.file('README.txt', 'Open index.html in your browser. Images are WebP and icons are SVG. CSS is compiled locally; Google Fonts need internet or a system fallback.\nBreakpoints: sm 640, md 768, lg 1024, xl 1280, 2xl 1536.\n');
+  zip.file('README.txt', 'Open index.html in your browser. Images are WebP and icons are SVG. CSS is compiled locally; Google Fonts need internet or a system fallback. The page preserves the selected Figma frame at its original size.\n');
   stage('Compressing HTML, CSS and assets into ZIP');
   return { buffer: await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' }), html: output };
 }

@@ -55,7 +55,6 @@
   .tabs { display: flex; align-items: center; gap: 4px; padding: 8px 14px 0; border-bottom: 1px solid var(--bd); }
   .tab { padding: 7px 12px; border-radius: 6px 6px 0 0; color: var(--tx2); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab.active { color: var(--tx); border-bottom-color: var(--brand); }
-  .devices { display: inline-flex; padding: 2px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--bd); margin-bottom: 6px; }
   .dev { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 6px; color: var(--tx2); font-weight: 500; }
   .dev.active { background: var(--bg); color: var(--tx); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
 
@@ -97,19 +96,9 @@
   .card label { color: var(--tx2); font-size: 11px; }
   .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
   #cfgmsg { font-size: 11px; min-height: 16px; white-space: pre-wrap; }
-  .references { padding: 10px 14px; border-bottom: 1px solid var(--bd); background: var(--bg2); }
-  .reference-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 8px 0; }
-  .reference-slot { min-width: 0; padding: 10px; border: 1px solid var(--bd); border-radius: 8px; background: var(--bg); }
-  .reference-slot strong,.reference-slot small { display: block; overflow-wrap: anywhere; }
-  .reference-slot small { color: var(--tx2); margin: 4px 0 8px; }
-  .reference-help { color: var(--tx2); font-size: 11px; }
-  .reference-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-  header,.tabs,.devices,.bar,.aibar,footer { min-width: 0; flex-wrap: wrap; }
-  .devices { max-width: 100%; }
+  header,.tabs,.bar,.aibar,footer { min-width: 0; flex-wrap: wrap; }
   @media (max-width: 760px) {
-    .reference-grid { grid-template-columns: 1fr; }
     .bar { gap: 10px; }
-    .devices { width: 100%; overflow-x: auto; flex-wrap: nowrap; }
   }
 </style>
 </head>
@@ -124,30 +113,16 @@
     </div>
   </header>
 
-  <section class="references" aria-label="Responsive design references">
-    <strong>Exact mobile, tablet + desktop → one responsive page</strong>
-    <div class="reference-help">Save each matching Figma frame below, or select 2-3 frames together. Every supplied viewport is preserved exactly.</div>
-    <div class="reference-grid">
-      <div class="reference-slot"><strong>Mobile reference</strong><small id="mobile-ref">No saved reference</small><button class="btn ghost" id="capture-mobile">Use selection as Mobile</button></div>
-      <div class="reference-slot"><strong>Tablet reference</strong><small id="tablet-ref">Optional</small><button class="btn ghost" id="capture-tablet">Use selection as Tablet</button></div>
-      <div class="reference-slot"><strong>Desktop reference</strong><small id="desktop-ref">No saved reference</small><button class="btn ghost" id="capture-desktop">Use selection as Desktop</button></div>
-    </div>
-    <span class="reference-help" id="reference-summary" role="status">Mobile and desktop are required. Tablet is optional.</span>
-    <div class="reference-actions">
-      <button class="btn ghost" id="clear-references">Clear saved references</button>
-    </div>
-  </section>
   <div class="bar">
     <label class="switch"><input type="checkbox" id="img" checked><span class="track"></span>Embed images</label>
-    <span>Exact responsive output</span>
+    <span>Exact selected-frame output</span>
     <span class="spacer"></span>
     <button class="btn primary" id="gen"><span class="spin"></span><span id="genlabel">Generate</span></button>
   </div>
   <div class="aibar">
     <span class="aitag">Express</span>
     <span>HTML + Tailwind</span>
-    <span>Original design sizes and spacing are preserved at every supplied viewport.</span>
-    <span id="ai-status">Checking AI availability…</span>
+    <span>Original x/y positions, sizes, spacing, colors and typography are preserved. No AI or responsive rewriting.</span>
     <span class="spacer"></span>
   </div>
   <details class="aibar">
@@ -155,7 +130,7 @@
     <label for="apiurl">Backend URL</label><input class="inp grow" id="apiurl" value="https://figma-backend-xi.vercel.app" type="url">
     <label><input id="logbackend" type="checkbox" checked> Show Generate / ZIP activity and code on backend dashboard</label>
     <button class="btn ghost" id="dashboard">Open dashboard</button>
-    <span>Express compiles responsive CSS and packages your ZIP. Gemini keys stay in backend environment variables and are never stored in this plugin.</span>
+    <span>Express compiles the exact Tailwind CSS and packages your ZIP.</span>
   </details>
   <div class="aibar" role="status" aria-live="polite"><span id="pipeline-status">Ready to generate</span><span class="spacer"></span><span id="backend-status">Dashboard ready ? Generate to start</span></div>
   <div id="err"></div>
@@ -164,23 +139,14 @@
     <button class="tab active" data-tab="preview">Preview</button>
     <button class="tab" data-tab="code">Code</button>
     <span class="spacer"></span>
-    <div class="devices" id="devices">
-      <label for="viewport">Width <input id="viewport" class="inp" type="number" min="320" max="4096" value="1280" style="width:76px;height:24px">px</label>
-      <button class="dev" data-w="375"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/></svg>Base</button>
-      <button class="dev" data-w="640"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/></svg>sm</button>
-      <button class="dev" data-w="768"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="3" width="16" height="18" rx="2"/></svg>md</button>
-      <button class="dev" data-w="1024"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg>lg</button>
-      <button class="dev active" data-w="1280"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg>xl</button>
-      <button class="dev" data-w="1536"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg>2xl</button>
-      <button class="dev" data-w="1920"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg>1920</button>
-    </div>
+    <span id="design-size">Original frame size</span>
   </div>
 
   <main>
     <div class="empty" id="empty">
       <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></div>
       <h2>Convert your design to code</h2>
-      <p>Select a design to preserve its layout, or save mobile + desktop references to generate a responsive page.</p>
+      <p>Select exactly one Figma frame to generate the same fixed layout as HTML + Tailwind.</p>
       <div class="steps"><span class="step">1. Select frame</span><span class="step">2. Generate</span><span class="step">3. Copy</span></div>
     </div>
     <div class="panel active" id="p-preview"><div class="stage" id="stage"><div class="frame" id="frame"><iframe id="prev"></iframe></div></div></div>
@@ -258,9 +224,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
   let html = '', fonts = {}, colors = {}, devW = 1280;
   let skeleton = '', sprite = '', imgUrls = {}, frameW = 0, frameH = 0;
   let formattedPage = '';
-  let references = [], mergePending = false;
   let generationReady = false, compiledCss = '';
-  let aiAvailable = false;
   let backendLimit = 2000000;
   let generationRun = '', generationStarted = 0, eventQueue = Promise.resolve(), downloadUrl = '';
   const newRun = () => Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
@@ -280,18 +244,13 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     return data;
   }
   async function probeBackend() {
-    const status = $('ai-status');
     try {
       const response = await fetch(backendUrl() + '/api/health', { signal: AbortSignal.timeout(6000) });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'HTTP ' + response.status);
       backendLimit = Number(data.maxHtmlChars) || backendLimit;
-      aiAvailable = !!data.ai?.enabled;
-      status.textContent = data.ai?.enabled ? `Gemini ${data.ai.model} runs automatically` : 'Gemini not configured — exact deterministic output active';
-      $('backend-status').textContent = 'Backend connected';
+      $('backend-status').textContent = 'Backend connected — exact deterministic engine ready';
     } catch (error) {
-      aiAvailable = false;
-      status.textContent = 'AI: backend unavailable';
       $('backend-status').textContent = 'Backend unavailable: ' + error.message;
     }
   }
@@ -376,27 +335,12 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
   window.addEventListener('resize', layoutPreview);
   layoutPreview();
 
-  for (const role of ['mobile', 'tablet', 'desktop']) $('capture-' + role).onclick = () => parent.postMessage({ pluginMessage: { type: 'capture-reference', role } }, '*');
-  $('clear-references').onclick = () => parent.postMessage({ pluginMessage: { type: 'clear-references' } }, '*');
   document.querySelectorAll('.tab').forEach((b) => b.onclick = () => {
     document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === b));
     document.querySelectorAll('.panel').forEach((p) => p.classList.toggle('active', p.id === 'p-' + b.dataset.tab));
-    $('devices').style.visibility = b.dataset.tab === 'preview' ? 'visible' : 'hidden';
     if (b.dataset.tab === 'code' && html && !$('out').dataset.ready) { $('out').value = codeView(); $('out').dataset.ready = 1; }
     if (b.dataset.tab === 'preview') layoutPreview();
   });
-  document.querySelectorAll('.dev').forEach((b) => b.onclick = () => {
-    document.querySelectorAll('.dev').forEach((x) => x.classList.toggle('active', x === b));
-    devW = parseInt(b.dataset.w, 10); $('viewport').value = devW; layoutPreview();
-  });
-  $('viewport').oninput = () => {
-    const width = Number($('viewport').value);
-    if (!Number.isFinite(width) || width < 320 || width > 4096) return;
-    devW = width;
-    document.querySelectorAll('.dev').forEach((button) => button.classList.toggle('active', Number(button.dataset.w) === width));
-    layoutPreview();
-  };
-
   $('gen').onclick = () => {
     generationReady = false;
     generationRun = newRun(); generationStarted = Date.now(); clearDownload();
@@ -404,7 +348,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     $('zip').disabled = true;
     showErr(''); setLoading(true, 'Starting...');
     $('copy').disabled = true; $('copyfull').disabled = true;
-    parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: true, images: $('img').checked, exact: true } } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: false, images: $('img').checked, exact: true } } }, '*');
   };
   $('dbg').onclick = () => parent.postMessage({ pluginMessage: { type: 'debug' } }, '*');
   $('copy').onclick = () => { copy(html); toast('Body HTML copied'); };
@@ -716,45 +660,26 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       $('dot').classList.toggle('on', m.count > 0);
       $('sel').textContent = m.count === 0 ? 'No frame selected' : m.count === 1 ? m.names[0] : m.count + ' layers selected';
     }
-    if (m.type === 'reference-error') showErr(m.msg);
-    if (m.type === 'reference-slots') {
-      showErr('');
-      for (const role of ['mobile', 'tablet', 'desktop']) {
-        const ref = m.slots[role];
-        $(role + '-ref').textContent = ref ? ref.name + ' · ' + ref.width + 'px' : (role === 'tablet' ? 'Optional' : 'No saved reference');
-      }
-      const paired = m.slots.mobile && m.slots.desktop;
-      $('reference-summary').textContent = paired ? (m.slots.tablet ? 'Mobile, tablet and desktop are ready for exact responsive output.' : 'Mobile and desktop are ready. Tablet uses the mobile layout until the desktop breakpoint.') : 'Save mobile and desktop, or clear references and select 2-3 matching frames together.';
-    }
     if (m.type === 'debug') { copy(m.json); toast('Layout debug copied (' + Math.round(m.json.length / 1024) + ' KB)'); }
     if (m.type === 'progress') { setLoading(true, m.msg); reportGeneration('progress', m.msg); }
     if (m.type === 'error') { setLoading(false); $('zip').disabled = !generationReady; showErr(m.msg); reportGeneration('error', m.msg); }
     if (m.type === 'result') {
       try {
       setLoading(true, 'Optimizing images...');
-      reportGeneration('progress', 'Optimizing assets and formatting responsive HTML');
+      reportGeneration('progress', 'Optimizing assets and formatting exact HTML');
       const packed = await packImages(m.html, m.images, m.sizes);
       html = packed.str; imgUrls = packed.urls; fonts = m.fonts || {}; colors = m.colors || {};
-      references = m.references || [];
-      mergePending = references.length > 1;
-      // Keep assets as tokens while combining viewport layouts.
       skeleton = m.html; const sm = skeleton.match(SPRITE_RE);
       sprite = sm ? sm[0] : ''; if (sm) skeleton = skeleton.replace(SPRITE_RE, () => '<!--SPRITE-->\n');
       else skeleton = '<!--SPRITE-->\n' + skeleton;
       frameW = m.width || 0; frameH = m.height || 0;
-      if (mergePending) {
-        skeleton = skeleton.replace(references[references.length - 1].html, () => preserveResponsive(references));
-        html = restoreHtml(skeleton);
-        mergePending = false;
-      }
       if (frameW) {
         devW = frameW;
-        $('viewport').value = devW;
-        document.querySelectorAll('.dev').forEach((x) => x.classList.toggle('active', parseInt(x.dataset.w, 10) === frameW));
+        $('design-size').textContent = `${Math.round(frameW)} × ${Math.round(frameH)}px`;
       }
       let fixMsg = '';
       fixMsg = 'Design code compiled by Express';
-      reportGeneration('progress', 'Sending responsive markup to Express');
+      reportGeneration('progress', 'Sending exact markup to Express');
       await eventQueue;
       if (skeleton.length > backendLimit) throw new Error(`Generated HTML is ${skeleton.length.toLocaleString()} characters; backend maximum is ${backendLimit.toLocaleString()}. Select smaller matching frames or simplify deeply nested layers.`);
       const result = await backendRequest('/api/generate', { runId: generationRun, html: skeleton, theme: configObject().theme.extend });
@@ -765,8 +690,7 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
       setLoading(false);
       $('empty').style.display = 'none';
       await refreshViews();
-      reportGeneration('done', references.length > 1 ? 'Responsive HTML ready' : 'Design HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
-      fixMsg = result.ai?.applied ? `Responsive code polished automatically by ${result.ai.model}` : (result.ai?.reason || fixMsg);
+      reportGeneration('done', 'Exact design HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
       if (fixMsg) toast(fixMsg);
       } catch (error) {
         generationReady = false;
@@ -791,9 +715,9 @@ If '${e}' is a directive input, make sure the directive is imported by the curre
     $('out').dataset.ready = ''; $('out').value = '';
     if (document.querySelector('.tab.active').dataset.tab === 'code') { $('out').value = codeView(); $('out').dataset.ready = 1; }
     $('prev').srcdoc = fullPage(); layoutPreview();
-    $('copy').disabled = mergePending;
-    $('copyfull').disabled = mergePending;
-    $('zip').disabled = mergePending || !generationReady;
+    $('copy').disabled = false;
+    $('copyfull').disabled = false;
+    $('zip').disabled = !generationReady;
     renderStats();
   }
 

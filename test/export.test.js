@@ -4,7 +4,7 @@ const JSZip = require('jszip');
 require('../src/config').MONGODB_URI = '';
 const app = require('../src/app');
 
-test('Express generation and ZIP export preserve responsive CSS and SVG assets', async () => {
+test('Express generation and ZIP export preserve exact CSS and SVG assets', async () => {
   const server = app.listen(0, '127.0.0.1');
   await new Promise(resolve => server.once('listening', resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
@@ -41,16 +41,9 @@ test('Express generation and ZIP export preserve responsive CSS and SVG assets',
     assert.match((await invalidRun.json()).error, /valid runId/);
     const large = await post('/api/generate', { runId: 'large-html-run', html: '<main class="p-4">' + 'x'.repeat(360000) + '</main>' });
     assert.equal(large.status, 200);
-    const fallback = await post('/api/generate', { runId: 'ai-fallback-run', html: '<main class="p-4">Safe</main>', ai: true });
-    assert.equal(fallback.status, 200);
-    assert.equal((await fallback.json()).ai.applied, false);
-    const refine = await post('/api/refine', { runId: 'refine-no-key', html: '<main>Safe</main>' });
-    assert.equal(refine.status, 503);
-    assert.match((await refine.json()).error, /not configured/);
     const health = await (await fetch(base + '/api/health')).json();
-    assert.equal(health.engine, 'figma-rules');
+    assert.equal(health.engine, 'figma-exact');
     assert.equal(health.maxHtmlChars, 2000000);
-    assert.equal(health.ai.enabled, false);
-    assert.equal('geminiKey' in health, false);
+    assert.equal('ai' in health, false);
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
