@@ -57,7 +57,7 @@ async function status() {
       ]);
     } catch (e) { db = 'error: ' + e.message; }
   }
-  return { ok: true, engine: 'figma-exact', db, maxHtmlChars: MAX_HTML_CHARS };
+  return { ok: true, engine: 'figma-exact-responsive', db, maxHtmlChars: MAX_HTML_CHARS };
 }
 
 async function recentLogs(limit = 25, includeOutput = true) {
@@ -113,9 +113,9 @@ app.post('/api/generate', limiter(15, 'Generation limit reached. Wait a minute.'
   try {
     stage('Cleaning semantic HTML and Tailwind utilities');
     let result = fixHtml(html);
-    stage('Compiling exact Tailwind styles');
+    stage('Compiling exact Mobile + Desktop Tailwind styles');
     const css = await compileCss(result.html, safeTheme);
-    stage('Exact HTML and compiled CSS ready');
+    stage('Exact responsive HTML and compiled CSS ready');
     await finishLog(entry, { output: result.html, outputChars: result.html.length, inputChars: html.length, ms: Date.now() - started });
     res.json({ html: result.html, css, stats: result.stats, runId });
   } catch (error) {

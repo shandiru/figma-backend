@@ -19,8 +19,10 @@ async function main() {
 
   try {
     const messages = [];
-    const selected = hydrate(sampleDesign());
-    const figma = { showUI() {}, on() {}, currentPage: { selection: [selected] }, ui: { postMessage: message => messages.push(message) } };
+    const mobile = sampleDesign(); mobile.id = 'Mobile'; mobile.name = 'Mobile'; mobile.width = 390;
+    const desktop = sampleDesign(); desktop.id = 'Desktop'; desktop.name = 'Desktop';
+    hydrate(mobile); hydrate(desktop);
+    const figma = { showUI() {}, on() {}, currentPage: { selection: [desktop, mobile] }, ui: { postMessage: message => messages.push(message) } };
     const context = vm.createContext({ __html__: '', figma });
     vm.runInContext(fs.readFileSync('plugin/code.js', 'utf8'), context);
 
@@ -46,20 +48,27 @@ async function main() {
     assert.equal(await page.locator('#viewport').count(), 0);
     const measured = await page.locator('#prev').evaluate(frame => {
       const doc = frame.contentDocument;
-      const root = doc.querySelector('main');
+      const root = [...doc.querySelectorAll('main')].find(element => element.getBoundingClientRect().width > 0);
       const photo = [...doc.querySelectorAll('[style]')].find(element => element.style.backgroundImage.includes('placehold'));
       return {
         frameWidth: frame.contentWindow.innerWidth,
         rootWidth: root.getBoundingClientRect().width,
         rootHeight: root.getBoundingClientRect().height,
-        hasResponsiveClass: /(?:sm|md|lg|xl|2xl):/.test(root.outerHTML),
+        visibleRoots: [...doc.querySelectorAll('main')].filter(element => element.getBoundingClientRect().width > 0).length,
         photoLeft: photo ? photo.getBoundingClientRect().left - root.getBoundingClientRect().left : null
       };
     });
     assert.equal(measured.frameWidth, 1440, JSON.stringify(measured));
     assert.equal(measured.rootWidth, 1440, JSON.stringify(measured));
     assert.equal(measured.rootHeight, 1100, JSON.stringify(measured));
-    assert.equal(measured.hasResponsiveClass, false, JSON.stringify(measured));
+    assert.equal(measured.visibleRoots, 1, JSON.stringify(measured));
+    await page.locator('#preview-mobile').click();
+    await page.waitForFunction(() => document.querySelector('#prev').contentWindow.innerWidth === 390);
+    const mobileMeasured = await page.locator('#prev').evaluate(frame => {
+      const roots = [...frame.contentDocument.querySelectorAll('main')].filter(element => element.getBoundingClientRect().width > 0);
+      return { width: frame.contentWindow.innerWidth, roots: roots.length, rootWidth: roots[0]?.getBoundingClientRect().width || 0 };
+    });
+    assert.deepEqual(mobileMeasured, { width: 390, roots: 1, rootWidth: 390 });
 
     const download = page.waitForEvent('download');
     await page.locator('#zip').click();
@@ -68,11 +77,12 @@ async function main() {
     const zip = await JSZip.loadAsync(fs.readFileSync(zipPath));
     const html = await zip.file('index.html').async('string');
     assert.match(html, /w-\[1440px\]/);
-    assert.doesNotMatch(html, /(?:sm|md|lg|xl|2xl):/);
+    assert.match(html, /block lg:hidden/);
+    assert.match(html, /hidden lg:block/);
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.join(output, 'exact-plugin.png'), fullPage: true });
     await page.close();
-    console.log('PASS: one selected Figma frame preserves its exact 1440x1100 layout with no AI or responsive output.');
+    console.log('PASS: selected Mobile + Desktop frames remain exact and switch responsively with no AI rewrite.');
   } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));

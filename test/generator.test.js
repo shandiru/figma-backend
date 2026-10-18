@@ -11,14 +11,16 @@ function generator() {
   return { ctx, messages };
 }
 
-test('generation preserves measured geometry, semantic HTML, images and named colors', async () => {
+test('generation preserves exact desktop geometry and returns an exact mobile reference', async () => {
   const { ctx, messages } = generator();
-  ctx.figma.currentPage.selection = [hydrate(sampleDesign())];
+  const mobile = sampleDesign(); mobile.id = 'Mobile'; mobile.name = 'Mobile'; mobile.width = 390;
+  const desktop = sampleDesign(); desktop.id = 'Desktop'; desktop.name = 'Desktop';
+  ctx.figma.currentPage.selection = [hydrate(desktop), hydrate(mobile)];
   await vm.runInContext('generate({ responsive: true, exact: false, images: true })', ctx);
   const result = messages.find(message => message.type === 'result');
   assert.ok(result, JSON.stringify(messages));
-  assert.equal(result.responsive, false);
-  assert.deepEqual(Array.from(result.references), []);
+  assert.equal(result.responsive, true);
+  assert.deepEqual(Array.from(result.references, reference => reference.width), [390, 1440]);
   assert.match(result.html, /<main/);
   assert.match(result.html, /<section/);
   assert.match(result.html, /w-\[1440px\]/);
@@ -34,13 +36,15 @@ test('generation preserves measured geometry, semantic HTML, images and named co
   assert.doesNotMatch(result.html, /(?:sm|md|lg|xl|2xl):/);
 });
 
-test('free-positioned children keep exact coordinates and are not rearranged', async () => {
+test('free-positioned children keep exact coordinates in each viewport tree', async () => {
   const { ctx, messages } = generator();
-  ctx.figma.currentPage.selection = [hydrate(node('Page', 1200, 500, [
+  const desktop = hydrate(node('Desktop', 1200, 500, [
     text('Title', 'Shared title', 36, { y: 0 }),
     text('Left', 'Left content', 16, { y: 140, x: 0 }),
     text('Right', 'Right content', 16, { y: 140, x: 600 })
-  ]))];
+  ]));
+  const mobile = hydrate(node('Mobile', 390, 500, [text('Title mobile', 'Shared title', 28, { y: 0 })]));
+  ctx.figma.currentPage.selection = [desktop, mobile];
   await vm.runInContext('generate({ images: false })', ctx);
   const result = messages.find(message => message.type === 'result');
   assert.ok(result);

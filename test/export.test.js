@@ -42,7 +42,7 @@ test('Express generation and ZIP export preserve exact CSS and SVG assets', asyn
     const large = await post('/api/generate', { runId: 'large-html-run', html: '<main class="p-4">' + 'x'.repeat(360000) + '</main>' });
     assert.equal(large.status, 200);
     const health = await (await fetch(base + '/api/health')).json();
-    assert.equal(health.engine, 'figma-exact');
+    assert.equal(health.engine, 'figma-exact-responsive');
     assert.equal(health.maxHtmlChars, 2000000);
     assert.equal('ai' in health, false);
   } finally { await new Promise(resolve => server.close(resolve)); }

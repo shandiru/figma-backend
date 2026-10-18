@@ -55,6 +55,7 @@
   .tabs { display: flex; align-items: center; gap: 4px; padding: 8px 14px 0; border-bottom: 1px solid var(--bd); }
   .tab { padding: 7px 12px; border-radius: 6px 6px 0 0; color: var(--tx2); font-weight: 600; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab.active { color: var(--tx); border-bottom-color: var(--brand); }
+  .devices { display: inline-flex; gap: 3px; padding: 2px; border-radius: 8px; background: var(--bg2); border: 1px solid var(--bd); margin-bottom: 6px; }
   .dev { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 6px; color: var(--tx2); font-weight: 500; }
   .dev.active { background: var(--bg); color: var(--tx); box-shadow: 0 1px 2px rgba(0,0,0,.15); }
 
@@ -115,14 +116,14 @@
 
   <div class="bar">
     <label class="switch"><input type="checkbox" id="img" checked><span class="track"></span>Embed images</label>
-    <span>Exact selected-frame output</span>
+    <span>Exact Mobile + Desktop responsive output</span>
     <span class="spacer"></span>
     <button class="btn primary" id="gen"><span class="spin"></span><span id="genlabel">Generate</span></button>
   </div>
   <div class="aibar">
     <span class="aitag">Express</span>
     <span>HTML + Tailwind</span>
-    <span>Original x/y positions, sizes, spacing, colors and typography are preserved. No AI or responsive rewriting.</span>
+    <span>Both selected layouts stay exact; CSS switches between Mobile and Desktop. No AI rewriting.</span>
     <span class="spacer"></span>
   </div>
   <details class="aibar">
@@ -139,15 +140,19 @@
     <button class="tab active" data-tab="preview">Preview</button>
     <button class="tab" data-tab="code">Code</button>
     <span class="spacer"></span>
-    <span id="design-size">Original frame size</span>
+    <div class="devices" id="devices" hidden>
+      <button class="dev" id="preview-mobile">Mobile</button>
+      <button class="dev active" id="preview-desktop">Desktop</button>
+    </div>
+    <span id="design-size">Select Mobile + Desktop</span>
   </div>
 
   <main>
     <div class="empty" id="empty">
       <div class="ico"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/></svg></div>
       <h2>Convert your design to code</h2>
-      <p>Select exactly one Figma frame to generate the same fixed layout as HTML + Tailwind.</p>
-      <div class="steps"><span class="step">1. Select frame</span><span class="step">2. Generate</span><span class="step">3. Copy</span></div>
+      <p>Select exactly two Figma frames: the narrower Mobile design and wider Desktop design.</p>
+      <div class="steps"><span class="step">1. Select both</span><span class="step">2. Generate</span><span class="step">3. Copy</span></div>
     </div>
     <div class="panel active" id="p-preview"><div class="stage" id="stage"><div class="frame" id="frame"><iframe id="prev"></iframe></div></div></div>
     <div class="panel" id="p-code"><textarea id="out" readonly spellcheck="false"></textarea></div>
@@ -170,6 +175,7 @@
 
   let html = '', fonts = {}, colors = {}, devW = 1280;
   let skeleton = '', sprite = '', imgUrls = {}, frameW = 0, frameH = 0;
+  let references = [];
   let formattedPage = '';
   let generationReady = false, compiledCss = '';
   let backendLimit = 2000000;
@@ -288,6 +294,16 @@
     if (b.dataset.tab === 'code' && html && !$('out').dataset.ready) { $('out').value = codeView(); $('out').dataset.ready = 1; }
     if (b.dataset.tab === 'preview') layoutPreview();
   });
+  function selectPreview(index) {
+    const ref = references[index]; if (!ref) return;
+    devW = ref.width;
+    $('design-size').textContent = `${Math.round(ref.width)} × ${Math.round(ref.height)}px`;
+    $('preview-mobile').classList.toggle('active', index === 0);
+    $('preview-desktop').classList.toggle('active', index === references.length - 1);
+    layoutPreview();
+  }
+  $('preview-mobile').onclick = () => selectPreview(0);
+  $('preview-desktop').onclick = () => selectPreview(references.length - 1);
   $('gen').onclick = () => {
     generationReady = false;
     generationRun = newRun(); generationStarted = Date.now(); clearDownload();
@@ -295,7 +311,7 @@
     $('zip').disabled = true;
     showErr(''); setLoading(true, 'Starting...');
     $('copy').disabled = true; $('copyfull').disabled = true;
-    parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: false, images: $('img').checked, exact: true } } }, '*');
+    parent.postMessage({ pluginMessage: { type: 'generate', opts: { responsive: true, images: $('img').checked, exact: true } } }, '*');
   };
   $('dbg').onclick = () => parent.postMessage({ pluginMessage: { type: 'debug' } }, '*');
   $('copy').onclick = () => { copy(html); toast('Body HTML copied'); };
@@ -616,13 +632,19 @@
       reportGeneration('progress', 'Optimizing assets and formatting exact HTML');
       const packed = await packImages(m.html, m.images, m.sizes);
       html = packed.str; imgUrls = packed.urls; fonts = m.fonts || {}; colors = m.colors || {};
+      references = m.references || [];
       skeleton = m.html; const sm = skeleton.match(SPRITE_RE);
       sprite = sm ? sm[0] : ''; if (sm) skeleton = skeleton.replace(SPRITE_RE, () => '<!--SPRITE-->\n');
       else skeleton = '<!--SPRITE-->\n' + skeleton;
+      if (references.length !== 2) throw new Error('Expected exact Mobile and Desktop references. Select exactly two frames and regenerate.');
+      skeleton = skeleton.replace(references[references.length - 1].html, () => preserveResponsive(references));
+      html = restoreHtml(skeleton);
       frameW = m.width || 0; frameH = m.height || 0;
       if (frameW) {
-        devW = frameW;
-        $('design-size').textContent = `${Math.round(frameW)} × ${Math.round(frameH)}px`;
+        $('devices').hidden = false;
+        $('preview-mobile').textContent = `Mobile ${references[0].width}px`;
+        $('preview-desktop').textContent = `Desktop ${references[1].width}px`;
+        selectPreview(references.length - 1);
       }
       let fixMsg = '';
       fixMsg = 'Design code compiled by Express';
@@ -637,7 +659,7 @@
       setLoading(false);
       $('empty').style.display = 'none';
       await refreshViews();
-      reportGeneration('done', 'Exact design HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
+      reportGeneration('done', 'Exact Mobile + Desktop responsive HTML ready', { output: skeleton.slice(0, 350000), ms: generationStarted ? Date.now() - generationStarted : 0 });
       if (fixMsg) toast(fixMsg);
       } catch (error) {
         generationReady = false;
